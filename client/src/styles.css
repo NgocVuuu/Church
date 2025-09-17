@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global base styles */
+:root {
+  --navbar-height: 80px;
+}
+
+body { @apply font-sans bg-white text-neutral-900; }
+
+/* Smooth font rendering */
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+html { scroll-behavior: smooth; }
+
+/* Animations */
+@keyframes zoomInBg {
+  from { transform: scale(0.96); }
+  to { transform: scale(1); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin360 {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-zoomIn { animation: zoomInBg 2s ease-in-out; }
+.animate-fadeUp { animation: fadeUp 700ms ease both; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+
+/* Navbar logo spin speeds */
+.spin { animation: spin360 900ms linear infinite; }
+.spin-fast { animation: spin360 600ms linear infinite; }
+.spin-slow { animation: spin360 1500ms linear infinite; }
+
+/* Page transition specific tweaks (kept minimal) */
+.page-transition-shadow { box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+
+/* Line clamp helpers */
+.clamp-2 { line-clamp: 2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.clamp-3 { line-clamp: 3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.clamp-5 { line-clamp: 5; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
