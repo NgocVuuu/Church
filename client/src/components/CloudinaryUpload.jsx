@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useToast } from './Toast'
+import { apiUrl } from '../lib/apiBase'
 
 // Usage:
 // <CloudinaryUpload onUploaded={(url)=>setImageUrl(url)} folder="church"/>
@@ -20,9 +21,9 @@ export default function CloudinaryUpload({ onUploaded, folder = 'church', multip
     try {
       const form = new FormData()
       form.append('file', file)
-      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloud}/image/upload`
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloud}/image/upload`
       // Lấy chữ ký từ server để upload signed
-      const sigRes = await fetch('/api/cloudinary/signature', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder }) })
+  const sigRes = await fetch(apiUrl('/cloudinary/signature'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder }) })
       if (!sigRes.ok) throw new Error('Không lấy được chữ ký từ server')
       const { timestamp, folder: f, signature, apiKey } = await sigRes.json()
       form.append('timestamp', timestamp)
