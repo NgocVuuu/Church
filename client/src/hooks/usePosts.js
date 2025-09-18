@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { apiUrl } from '../lib/apiBase'
 
 const KEY = 'parish_posts_v1'
 const defaults = [
@@ -45,37 +46,65 @@ function parseVNDate(str='') {
 
 export function usePosts() {
   const [posts, setPosts] = useState(defaults)
+
+  // helper to normalize server doc shape
+  const fromServer = (doc) => ({ id: doc._id || doc.id, title: doc.title, slug: doc.slug, author: doc.author || '', date: doc.date || todayVN(), image: doc.image || '', content: doc.content || '', createdAt: doc.createdAt ? new Date(doc.createdAt).getTime() : Date.now() })
+
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY)
-      if (raw) {
-        let loaded = JSON.parse(raw)
-        // migrate missing slug/date/createdAt
-        let changed = false
-        const ensureUnique = (slug, idx) => {
-          let s = slug
-          let n = 2
-          const exists = (val) => loaded.some((p, i) => i !== idx && p.slug === val)
-          while (exists(s)) { s = `${slug}-${n++}` }
-          return s
-        }
-        loaded = loaded.map((p, i) => {
-          let next = { ...p }
-          if (!next.slug) { changed = true; const s = ensureUnique(slugify(next.title), i); next.slug = s }
-          if (!next.date) { changed = true; next.date = todayVN() }
-          if (!next.createdAt) {
-            const ts = parseVNDate(next.date)
-            next.createdAt = Number.isFinite(ts) ? ts : Date.now() - i
-            changed = true
+    let cancelled = false
+    const load = async () => {
+      try {
+        // Try backend first
+        const res = await fetch(apiUrl('/posts'))
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data)) {
+            const mapped = data.map(fromServer)
+            if (!cancelled) {
+              setPosts(mapped)
+              try { localStorage.setItem(KEY, JSON.stringify(mapped)) } catch {}
+            }
+            return
           }
-          return next
-        })
-        if (changed) { localStorage.setItem(KEY, JSON.stringify(loaded)) }
-        setPosts(loaded)
+        }
+      } catch (e) {
+        // ignore and fallback to localStorage
       }
-    } catch {}
+      // Fallback to localStorage
+      try {
+        const raw = localStorage.getItem(KEY)
+        if (raw) {
+          let loaded = JSON.parse(raw)
+          // migrate missing fields
+          let changed = false
+          const ensureUnique = (slug, idx) => {
+            let s = slug
+            let n = 2
+            const exists = (val) => loaded.some((p, i) => i !== idx && p.slug === val)
+            while (exists(s)) { s = `${slug}-${n++}` }
+            return s
+          }
+          loaded = loaded.map((p, i) => {
+            let next = { ...p }
+            if (!next.slug) { changed = true; const s = ensureUnique(slugify(next.title), i); next.slug = s }
+            if (!next.date) { changed = true; next.date = todayVN() }
+            if (!next.createdAt) {
+              const ts = parseVNDate(next.date)
+              next.createdAt = Number.isFinite(ts) ? ts : Date.now() - i
+              changed = true
+            }
+            return next
+          })
+          if (changed) { localStorage.setItem(KEY, JSON.stringify(loaded)) }
+          if (!cancelled) setPosts(loaded)
+        }
+      } catch {}
+    }
+    load()
+    return () => { cancelled = true }
   }, [])
-  const savePosts = (next) => { setPosts(next); localStorage.setItem(KEY, JSON.stringify(next)) }
+
+  const savePosts = (next) => { setPosts(next); try { localStorage.setItem(KEY, JSON.stringify(next)) } catch {} }
   const ensureUniqueSlug = (slug, excludeId) => {
     let s = slug
     let n = 2
@@ -83,7 +112,19 @@ export function usePosts() {
     while (exists(s)) { s = `${slug}-${n++}` }
     return s
   }
-  const addPost = (post) => {
+  const addPost = async (post) => {
+    // Try server, fallback to local
+    try {
+      const body = { ...post, slug: post.slug || slugify(post.title), date: post.date || todayVN() }
+      const res = await fetch(apiUrl('/posts'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (res.ok) {
+        const data = await res.json()
+        const mapped = fromServer(data)
+        const next = [mapped, ...posts]
+        return savePosts(next)
+      }
+    } catch {}
+    // local fallback
     const id = Date.now().toString()
     const rawSlug = post.slug || slugify(post.title)
     const unique = ensureUniqueSlug(rawSlug)
@@ -92,8 +133,16 @@ export function usePosts() {
     const next = [{...post, id, slug: unique, date, createdAt}, ...posts]
     savePosts(next)
   }
-  const updatePost = (id, patch) => { const next = posts.map(p => p.id === id ? { ...p, ...patch } : p); savePosts(next) }
-  const removePost = (id) => { const next = posts.filter(p => p.id !== id); savePosts(next) }
+  const updatePost = async (id, patch) => {
+    try {
+      await fetch(apiUrl(`/posts/${id}`), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) })
+    } catch {}
+    const next = posts.map(p => p.id === id ? { ...p, ...patch } : p); savePosts(next)
+  }
+  const removePost = async (id) => {
+    try { await fetch(apiUrl(`/posts/${id}`), { method: 'DELETE' }) } catch {}
+    const next = posts.filter(p => p.id !== id); savePosts(next)
+  }
   const getPost = (id) => posts.find(p => p.id === id)
   const getPostBySlug = (slug) => posts.find(p => p.slug === slug)
   return { posts, savePosts, addPost, updatePost, removePost, getPost, getPostBySlug, slugify, ensureUniqueSlug }

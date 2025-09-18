@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import { v2 as cloudinary } from 'cloudinary';
+import postsRouter from './routes/posts.js';
+import sermonsRouter from './routes/sermons.js';
 
 dotenv.config();
 
@@ -58,6 +60,10 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
     });
   });
 }
+
+// Data routes
+app.use('/api/posts', postsRouter);
+app.use('/api/sermons', sermonsRouter);
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/church';
