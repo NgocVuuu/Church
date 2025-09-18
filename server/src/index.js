@@ -11,6 +11,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Root info (avoid 404 at domain root)
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'church-api',
+    message: 'API server is running. Try /api/health',
+    endpoints: ['/api/health', '/api/admin/ping', '/api/cloudinary/signature'],
+  });
+});
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'church-api' });
