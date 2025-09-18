@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import Sermon from '../models/Sermon.js'
 import { slugify } from '../utils/text.js'
+import { auth, adminOnly } from '../middleware/auth.js'
+import { validateSermon, validateObjectId } from '../middleware/validation.js'
 
 const router = Router()
 
@@ -15,7 +17,7 @@ router.get('/:slug', async (req, res) => {
   res.json(item)
 })
 
-router.post('/', async (req, res) => {
+router.post('/', auth, adminOnly, validateSermon, async (req, res) => {
   const { title, slug, pastor, date, image, summary, content } = req.body || {}
   if (!title) return res.status(400).json({ error: 'title is required' })
   const s = (slug || slugify(title))
@@ -28,7 +30,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, adminOnly, validateObjectId, validateSermon, async (req, res) => {
   try {
     const updated = await Sermon.findByIdAndUpdate(req.params.id, req.body, { new: true })
     if (!updated) return res.status(404).json({ error: 'Not found' })
@@ -38,7 +40,7 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, adminOnly, validateObjectId, async (req, res) => {
   try {
     const del = await Sermon.findByIdAndDelete(req.params.id)
     if (!del) return res.status(404).json({ error: 'Not found' })

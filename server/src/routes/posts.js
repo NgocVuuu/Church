@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import Post from '../models/Post.js'
 import { slugify } from '../utils/text.js'
+import { auth, adminOnly } from '../middleware/auth.js'
+import { validatePost, validateObjectId } from '../middleware/validation.js'
 
 const router = Router()
 
@@ -18,7 +20,7 @@ router.get('/:slug', async (req, res) => {
 })
 
 // Create
-router.post('/', async (req, res) => {
+router.post('/', auth, adminOnly, validatePost, async (req, res) => {
   const { title, slug, author, date, image, content } = req.body || {}
   if (!title) return res.status(400).json({ error: 'title is required' })
   const s = (slug || slugify(title))
@@ -32,7 +34,7 @@ router.post('/', async (req, res) => {
 })
 
 // Update by id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, adminOnly, validateObjectId, validatePost, async (req, res) => {
   try {
     const updated = await Post.findByIdAndUpdate(req.params.id, req.body, { new: true })
     if (!updated) return res.status(404).json({ error: 'Not found' })
@@ -43,7 +45,7 @@ router.put('/:id', async (req, res) => {
 })
 
 // Delete by id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, adminOnly, validateObjectId, async (req, res) => {
   try {
     const del = await Post.findByIdAndDelete(req.params.id)
     if (!del) return res.status(404).json({ error: 'Not found' })
