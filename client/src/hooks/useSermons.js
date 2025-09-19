@@ -46,6 +46,7 @@ const fromServer = (doc) => ({
   image: doc.image || '',
   summary: doc.summary || '',
   content: doc.content || '',
+  views: typeof doc.views === 'number' ? doc.views : 0,
   createdAt: doc.createdAt ? new Date(doc.createdAt).getTime() : (Number.isFinite(parseVNDate(doc.date)) ? parseVNDate(doc.date) : Date.now())
 })
 
@@ -119,7 +120,9 @@ export function useSermons() {
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || `Server error: ${res.status}`)
+        const details = errorData.details?.map?.(d=>`${d.path?.join?.('.')||d.param||''}: ${d.msg||d.message||''}`).join('; ')
+        const msg = errorData.error === 'Validation failed' && details ? `${errorData.error}: ${details}` : (errorData.error || `Server error: ${res.status}`)
+        throw new Error(msg)
       }
       const data = await res.json()
       const mapped = fromServer(data)
@@ -142,7 +145,9 @@ export function useSermons() {
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || `Server error: ${res.status}`)
+        const details = errorData.details?.map?.(d=>`${d.path?.join?.('.')||d.param||''}: ${d.msg||d.message||''}`).join('; ')
+        const msg = errorData.error === 'Validation failed' && details ? `${errorData.error}: ${details}` : (errorData.error || `Server error: ${res.status}`)
+        throw new Error(msg)
       }
       const data = await res.json()
       const mapped = fromServer(data)
@@ -177,6 +182,21 @@ export function useSermons() {
 
   const getSermon = (id) => sermons.find(s => s.id === id)
   const getSermonBySlug = (s) => sermons.find(p => p.slug === s)
+  const fetchSermonBySlug = async (slug) => {
+    try {
+      const res = await fetch(apiUrl(`/sermons/${slug}`))
+      if (!res.ok) throw new Error('Not found')
+      const data = await res.json()
+      const mapped = fromServer(data)
+      const next = (() => {
+        const idx = sermons.findIndex(p => p.slug === slug)
+        if (idx === -1) return [mapped, ...sermons]
+        const copy = sermons.slice(); copy[idx] = mapped; return copy
+      })()
+      saveState(next)
+      return mapped
+    } catch { return null }
+  }
 
   return {
     sermons,
@@ -187,6 +207,7 @@ export function useSermons() {
     removeSermon,
     getSermon,
     getSermonBySlug,
+    fetchSermonBySlug,
     slugify,
     ensureUniqueSlug,
     refetch: loadSermons,

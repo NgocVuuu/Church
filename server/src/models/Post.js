@@ -8,6 +8,7 @@ const PostSchema = new mongoose.Schema(
     date: { type: String, default: '' }, // dd/MM/YYYY for compatibility with FE
     image: { type: String, default: '' },
     content: { type: String, default: '' },
+    views: { type: Number, default: 0 },
   },
   { timestamps: true }
 )

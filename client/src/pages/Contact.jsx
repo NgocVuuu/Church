@@ -1,7 +1,7 @@
 import Navbar from '../components/Navbar'
 import PageBanner from '../components/PageBanner'
 import Footer from '../components/Footer'
-import { useContactContent } from '../hooks/useContactContent'
+import { useContactContent } from '../hooks/useContact'
 import Reveal from '../components/Reveal'
 
 export default function Contact() {
@@ -10,7 +10,7 @@ export default function Contact() {
     <div className="bg-neutral-50 min-h-screen">
       <Navbar />
   <PageBanner pageKey="contact" title="Liên hệ" subtitle="Kết nối với giáo xứ" vAlign="center" focus="center" />
-  <div className="max-w-7xl mx-auto px-6 py-12 md:py-16 grid md:grid-cols-2 gap-10">
+  <div className="max-w-7xl mx-auto px-6 py-6 md:py-8 grid md:grid-cols-2 gap-10">
         {/* Left info cards */}
         <div className="space-y-5">
           {[{

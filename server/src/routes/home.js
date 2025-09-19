@@ -1,15 +1,18 @@
 import { Router } from 'express'
-import HomeContent from '../models/HomeContent.js'
+import Home from '../models/Home.js'
 import { auth, adminOnly } from '../middleware/auth.js'
+import Event from '../models/Event.js'
 import { validateHomeContent } from '../middleware/validation.js'
 
 const router = Router()
 
+const CREATE_DEFAULTS_ON_GET = process.env.CREATE_DEFAULTS_ON_GET === '1'
+
 // Get home content
 router.get('/', async (req, res) => {
   try {
-    let content = await HomeContent.findOne().lean()
-    if (!content) {
+    let content = await Home.findOne().lean()
+    if (!content && CREATE_DEFAULTS_ON_GET) {
       // Create default content if none exists
       const defaultContent = {
         slides: [
@@ -59,6 +62,24 @@ router.get('/', async (req, res) => {
           date: '2026-01-01T08:30:00',
           image: 'https://images.unsplash.com/photo-1543306730-efd0a3fa3a83?q=80&w=1600&auto=format&fit=crop'
         },
+        events: [
+          {
+            title: 'Chia sẻ Đức Tin & Tin Mừng',
+            timeLabel: '8:30 sáng - 11:30 sáng',
+            pastor: 'Lm. Giuse',
+            address: '203 Đường Mẫu, Phường ABC, Thành phố XYZ',
+            date: '2026-01-01T08:30:00',
+            image: 'https://images.unsplash.com/photo-1543306730-efd0a3fa3a83?q=80&w=1600&auto=format&fit=crop'
+          },
+          {
+            title: 'Tĩnh tâm mùa Chay',
+            timeLabel: '18:00 tối - 20:00 tối',
+            pastor: 'Lm. Phanxicô',
+            address: 'Nhà thờ giáo xứ Đông Vinh',
+            date: '2026-03-10T18:00:00',
+            image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop'
+          }
+        ],
         quotes: [
           {
             title: 'Đức ái là trái tim của Giáo Hội',
@@ -81,8 +102,9 @@ router.get('/', async (req, res) => {
         ],
         announcements: []
       }
-      content = await HomeContent.create(defaultContent)
+      content = await Home.create(defaultContent)
     }
+    if (!content) return res.json({})
     res.json(content)
   } catch (error) {
     res.status(500).json({ error: 'Failed to get home content' })
@@ -92,11 +114,23 @@ router.get('/', async (req, res) => {
 // Update home content
 router.put('/', auth, adminOnly, validateHomeContent, async (req, res) => {
   try {
-    let content = await HomeContent.findOne()
+    let content = await Home.findOne()
     if (!content) {
-      content = await HomeContent.create(req.body)
+      content = await Home.create(req.body)
     } else {
-      content = await HomeContent.findOneAndUpdate({}, req.body, { new: true })
+      content = await Home.findOneAndUpdate({}, req.body, { new: true })
+    }
+    // Mirror events[] into standalone Event collection
+    const list = Array.isArray(content.events) ? content.events : []
+    for (const ev of list) {
+      const title = (ev.title || '').trim()
+      if (!title) continue
+      const sigDate = (ev.date || '').slice(0, 10)
+      await Event.updateOne(
+        { title, date: sigDate },
+        { $set: { timeLabel: ev.timeLabel||'', pastor: ev.pastor||'', address: ev.address||'', image: ev.image||'' } },
+        { upsert: true }
+      )
     }
     res.json(content)
   } catch (error) {

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-const AboutContentSchema = new mongoose.Schema({
+const AboutSchema = new mongoose.Schema({
   intro: {
     title: { type: String, default: '' },
     paragraphs: [{ type: String }],
@@ -16,6 +16,6 @@ const AboutContentSchema = new mongoose.Schema({
     tag: { type: String, default: '' },
     title: { type: String, default: '' }
   }]
-}, { timestamps: true })
+}, { timestamps: true, collection: 'about' })
 
-export default mongoose.model('AboutContent', AboutContentSchema)
+export default mongoose.model('About', AboutSchema)

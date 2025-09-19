@@ -4,7 +4,7 @@ import FacebookIcon from './icons/FacebookIcon'
 
 export default function Footer() {
   return (
-  <footer className="bg-neutral-900 text-neutral-300 pt-14 pb-10 font-sans mt-12">
+  <footer className="bg-neutral-900 text-neutral-300 pt-10 pb-8 font-sans mt-8">
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-10">
         <div>
           <div className="flex items-center space-x-2">
@@ -58,7 +58,7 @@ export default function Footer() {
           <div className="text-primary text-lg font-medium">8:45 - 9:30</div>
         </div>
       </div>
-      <div className="mt-10 text-center text-neutral-500 text-sm">©2025 | Bản quyền thiết kế thuộc về Ngọc Vũ</div>
+      <div className="mt-6 text-center text-neutral-500 text-sm">©2025 | Bản quyền thiết kế thuộc về Ngọc Vũ</div>
     </footer>
   )
 }

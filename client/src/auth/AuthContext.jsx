@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { apiUrl } from '../lib/apiBase'
 
 const AuthContext = createContext(null)
 
@@ -16,17 +17,26 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (email, password) => {
-    // Placeholder: accept a hardcoded admin until backend is wired
-    if (email === 'admin@parish.vn' && password === 'admin123') {
-      const t = 'demo-token'
-      const u = { email, role: 'admin' }
+    try {
+      const res = await fetch(apiUrl('/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.token) {
+        return { ok: false, error: data?.error || 'Sai tài khoản hoặc mật khẩu' }
+      }
+      const t = data.token
+      const u = data.user || { email, role: 'admin' }
       localStorage.setItem('auth_token', t)
       localStorage.setItem('auth_user', JSON.stringify(u))
       setToken(t)
       setUser(u)
       return { ok: true }
+    } catch {
+      return { ok: false, error: 'Không thể kết nối máy chủ' }
     }
-    return { ok: false, error: 'Sai tài khoản hoặc mật khẩu' }
   }
 
   const logout = () => {

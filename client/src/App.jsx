@@ -21,6 +21,7 @@ import { ToastProvider } from './components/Toast'
 import Gallery from './pages/Gallery'
 import AdminGallery from './pages/admin/AdminGallery'
 import AdminContact from './pages/admin/AdminContact'
+import EventsPage from './pages/Events'
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/muc-tu" element={<Pastors />} />
         <Route path="/lien-he" element={<Contact />} />
         <Route path="/thu-vien-anh" element={<Gallery />} />
+  <Route path="/su-kien" element={<EventsPage />} />
         <Route path="/quan-tri/dang-nhap" element={<AdminLogin />} />
         <Route path="/quan-tri" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
           <Route index element={<Dashboard />} />

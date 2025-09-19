@@ -7,24 +7,32 @@ import { useToast } from '../../components/Toast'
 export default function AdminPosts() {
   const [imageUrl, setImageUrl] = useState('')
   const banner = useBanner('blog')
-  const { posts, addPost, updatePost, removePost, slugify, ensureUniqueSlug } = usePosts()
+  const { posts, addPost, updatePost, removePost, slugify } = usePosts()
   const toast = useToast()
   const [form, setForm] = useState({ title: '', slug: '', author: '', date: '', content: '' })
   const [editingId, setEditingId] = useState(null)
   const contentRef = useRef(null)
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
     const raw = form.slug || slugify(form.title)
     if (editingId) {
-      const unique = ensureUniqueSlug(raw, editingId)
-      updatePost(editingId, { ...form, slug: unique, image: imageUrl })
-      toast.success('Đã cập nhật bài viết')
-      setEditingId(null)
+      try {
+        await updatePost(editingId, { ...form, slug: raw, image: imageUrl })
+  toast.success('Đã cập nhật bài viết')
+        setEditingId(null)
+      } catch (err) {
+        toast.error(`Cập nhật thất bại: ${err?.message || 'Lỗi không xác định'}`)
+        return
+      }
     } else {
-      const unique = ensureUniqueSlug(raw)
-      const date = form.date || new Date().toLocaleDateString('vi-VN')
-      addPost({ ...form, slug: unique, image: imageUrl, date })
-      toast.success('Đã thêm bài viết')
+      try {
+        const date = form.date || new Date().toLocaleDateString('vi-VN')
+        await addPost({ ...form, slug: raw, image: imageUrl, date })
+  toast.success('Đã thêm bài viết')
+      } catch (err) {
+        toast.error(`Thêm thất bại: ${err?.message || 'Lỗi không xác định'}`)
+        return
+      }
     }
     setForm({ title: '', slug: '', author: '', date: '', content: '' })
     setImageUrl('')
@@ -77,7 +85,15 @@ export default function AdminPosts() {
     setEditingId(p.id)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  const onRemove = (id) => { if (confirm('Xóa bài viết này?')) { removePost(id); toast.info('Đã xóa bài viết') } }
+  const onRemove = async (id) => {
+    if (!confirm('Xóa bài viết này?')) return
+    try {
+      await removePost(id)
+  toast.info('Đã xóa bài viết')
+    } catch (err) {
+      toast.error(`Xóa thất bại: ${err?.message || 'Lỗi không xác định'}`)
+    }
+  }
 
   const applyBold = () => {
     const prevY = window.scrollY
@@ -116,7 +132,6 @@ export default function AdminPosts() {
           const title = e.target.value
           setForm(f=>({ ...f, title, slug: f.slug ? f.slug : slugify(title) }))
         }} placeholder="Tiêu đề" className="w-full border rounded px-4 py-3" />
-        <input value={form.slug} onChange={(e)=>setForm(f=>({...f, slug:e.target.value}))} placeholder="Slug (tự sinh từ tiêu đề, có thể sửa)" className="w-full border rounded px-4 py-3 text-sm" />
         <input value={form.author} onChange={(e)=>setForm(f=>({...f, author:e.target.value}))} placeholder="Tác giả" className="w-full border rounded px-4 py-3" />
         <input value={form.date} onChange={(e)=>setForm(f=>({...f, date:e.target.value}))} placeholder="Ngày (vd: 17/09/2025 hoặc 2025-09-17)" className="w-full border rounded px-4 py-3" />
         <div className="space-y-2">

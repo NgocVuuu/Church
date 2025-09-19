@@ -2,8 +2,8 @@ import Navbar from '../components/Navbar'
 import PageBanner from '../components/PageBanner'
 import RecentPhotos from '../components/RecentPhotos'
 import Footer from '../components/Footer'
-import { useContactContent } from '../hooks/useContactContent'
-import { useAboutContent } from '../hooks/useAboutContent'
+import { useContactContent } from '../hooks/useContact'
+import { useAboutContent } from '../hooks/useAbout'
 import Reveal from '../components/Reveal'
 
 export default function About() {
@@ -14,7 +14,7 @@ export default function About() {
       <Navbar />
   <PageBanner pageKey="about" title="Giới thiệu giáo xứ" subtitle="Thông tin tổng quan và sứ mạng" vAlign="center" focus="center" />
 
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-6">
           {[{
             label:'Giáo dân', value:`~ ${about.stats.parishioners}`, note:'Số giáo dân sinh hoạt thường xuyên'
@@ -34,7 +34,7 @@ export default function About() {
         </div>
       </section>
 
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
     <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-start">
               {/* Left: Rich intro */}
               <Reveal>
@@ -92,7 +92,7 @@ export default function About() {
             </div>
       </section>
 
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
         <div className="max-w-7xl mx-auto px-6">
           <Reveal>
             <RecentPhotos showViewAll={true} />

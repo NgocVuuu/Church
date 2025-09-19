@@ -68,22 +68,22 @@ export const validatePriest = [
     .isLength({ min: 1, max: 100 })
     .withMessage('Name is required and must be between 1-100 characters'),
   body('role')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .isLength({ max: 100 })
     .withMessage('Role must be less than 100 characters'),
   body('email')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .isEmail()
     .withMessage('Must be a valid email address'),
   body('phone')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .isMobilePhone()
     .withMessage('Must be a valid phone number'),
   body('order')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .isInt({ min: 0 })
     .withMessage('Order must be a non-negative integer'),
   handleValidationErrors

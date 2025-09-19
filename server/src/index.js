@@ -11,12 +11,11 @@ import compression from 'compression';
 import { v2 as cloudinary } from 'cloudinary';
 import postsRouter from './routes/posts.js';
 import sermonsRouter from './routes/sermons.js';
-import homeContentRouter from './routes/homeContent.js';
-import aboutContentRouter from './routes/aboutContent.js';
+import homeRouter from './routes/home.js';
+import aboutRouter from './routes/about.js';
 import priestsRouter from './routes/priests.js';
 import authRouter from './routes/auth.js';
 import galleryRouter from './routes/gallery.js';
-import contactContentRouter from './routes/contactContent.js';
 
 dotenv.config();
 
@@ -46,7 +45,13 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use('/api/', limiter);
+// Apply rate limiting only to mutating methods to avoid noisy 429s on GET in dev
+app.use('/api/', (req, res, next) => {
+  const method = req.method.toUpperCase()
+  const isMutating = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+  if (isMutating) return limiter(req, res, next)
+  return next()
+});
 
 // Stricter rate limiting for auth endpoints
 const authLimiter = rateLimit({
@@ -57,9 +62,19 @@ const authLimiter = rateLimit({
   }
 });
 
-// CORS configuration - specific origins only
+// CORS configuration - allow multiple dev origins via env CLIENT_URL or CLIENT_URLS
+const clientUrls = (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:5174')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true) // non-browser or same-origin/proxy
+    // Allow any localhost:517x for vite dev convenience
+    const ok = clientUrls.includes(origin) || /http:\/\/localhost:517\d$/.test(origin)
+    cb(null, ok)
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -84,7 +99,7 @@ app.get('/', (_req, res) => {
     status: 'ok',
     service: 'church-api',
     message: 'API server is running. Try /api/health',
-    endpoints: ['/api/health', '/api/admin/ping', '/api/cloudinary/signature', '/api/posts', '/api/sermons', '/api/home-content', '/api/about-content', '/api/priests', '/api/auth', '/api/gallery', '/api/contact-content'],
+    endpoints: ['/api/health', '/api/admin/ping', '/api/cloudinary/signature', '/api/posts', '/api/sermons', '/api/home', '/api/about', '/api/priests', '/api/auth', '/api/gallery'],
   });
 });
 
@@ -97,6 +112,23 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/admin/ping', (_req, res) => {
   res.json({ ok: true });
 });
+
+// Admin summary (counts)
+app.get('/api/admin/summary', async (_req, res) => {
+  try {
+    const Post = (await import('./models/Post.js')).default
+    const Sermon = (await import('./models/Sermon.js')).default
+    const Priest = (await import('./models/Priest.js')).default
+    const [posts, sermons, priests] = await Promise.all([
+      Post.countDocuments({}),
+      Sermon.countDocuments({}),
+      Priest.countDocuments({}),
+    ])
+    res.json({ posts, sermons, priests })
+  } catch (e) {
+    res.status(500).json({ error: 'summary_failed' })
+  }
+})
 
 // Cloudinary config (server-side only)
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
@@ -129,14 +161,14 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
 // Data routes
 app.use('/api/posts', postsRouter);
 app.use('/api/sermons', sermonsRouter);
-app.use('/api/home-content', homeContentRouter);
-app.use('/api/about-content', aboutContentRouter);
+app.use('/api/home', homeRouter);
+app.use('/api/about', aboutRouter);
 app.use('/api/priests', priestsRouter);
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/gallery', galleryRouter);
-app.use('/api/contact-content', contactContentRouter);
+// Contact route removed: contact content is hard-coded in client.
 
-const PORT = process.env.PORT || 5000;
+const BASE_PORT = Number(process.env.PORT) || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/church';
 
 async function start() {
@@ -146,7 +178,21 @@ async function start() {
   } catch (e) {
     console.warn('MongoDB not connected yet. Continuing without DB. Set MONGODB_URI in .env');
   }
-  app.listen(PORT, () => console.log(`API đang chạy tại http://localhost:${PORT}`));
+  // Try a few ports in case default is busy; useful during dev when previous process didn't exit
+  const tryListen = (port, attemptsLeft = 5) => {
+    const server = app.listen(port, () => console.log(`API đang chạy tại http://localhost:${port}`));
+    server.on('error', (err) => {
+      if (err && err.code === 'EADDRINUSE' && attemptsLeft > 0) {
+        const next = port + 1
+        console.warn(`Port ${port} in use; trying ${next}...`)
+        tryListen(next, attemptsLeft - 1)
+      } else {
+        console.error('Server failed to start:', err)
+        process.exit(1)
+      }
+    })
+  }
+  tryListen(BASE_PORT)
 }
 
 start();

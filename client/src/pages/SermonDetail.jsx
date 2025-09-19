@@ -7,27 +7,112 @@ import { useSermons } from '../hooks/useSermons'
 import { usePosts } from '../hooks/usePosts'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import Reveal from '../components/Reveal'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { dlog } from '../lib/debug'
 
 export default function SermonDetail() {
   const { id } = useParams()
-  const { sermons, getSermonBySlug } = useSermons()
+  const { sermons, getSermonBySlug, fetchSermonBySlug } = useSermons()
   const { posts } = usePosts()
   const sermon = getSermonBySlug(id) || sermons.find(s => s.id === id) || sermons[0]
-  const { isSpeaking, isPaused, speakSmart, pause, resume, stop, forceStop } = useTextToSpeech()
+  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop } = useTextToSpeech()
 
-  // Stop TTS when component unmounts or route changes
+  // Dừng đọc khi unmount hoặc đổi bài giảng (id)
+  const cleanupGuardRef = useRef(false)
   useEffect(() => {
+    if (id) fetchSermonBySlug(id)
     return () => {
+      if (import.meta.env.DEV && !cleanupGuardRef.current) {
+        cleanupGuardRef.current = true
+        return
+      }
       forceStop()
     }
   }, [forceStop, id])
 
+  // Chuẩn hóa text (chỉ đọc nội dung đến từ DB, không lấy từ DOM)
+  function getReadableText(title = '', content = '') {
+    const combine = [title, content].filter(Boolean).join('. ')
+    if (!combine) return ''
+    let s = combine.replace(/<[^>]+>/g, ' ')
+    s = s
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+    s = s
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/^\s*#{1,6}\s*/gm, '')
+    s = s.replace(/https?:\/\/\S+/g, '')
+    s = s.replace(/\s+/g, ' ').trim()
+    return s
+  }
+
+  const cleanedText = useMemo(() => getReadableText(sermon?.title, sermon?.content), [sermon?.title, sermon?.content])
+  const cleanedTitle = useMemo(() => getReadableText(sermon?.title || '', ''), [sermon?.title])
+  const cleanedContent = useMemo(() => getReadableText('', sermon?.content || ''), [sermon?.content])
   const handleSpeak = () => {
-    if (sermon?.title && sermon?.content) {
-      speakSmart(`${sermon.title}. ${sermon.content}`)
+    const rawTitle = sermon?.title || ''
+    const rawContent = sermon?.content || ''
+    const rawContentFirst2000 = rawContent.slice(0, 2000)
+    const supports = {
+      hasSynth: typeof window !== 'undefined' && !!window.speechSynthesis,
+      hasUtter: typeof window !== 'undefined' && 'SpeechSynthesisUtterance' in window,
+    }
+    const engine = supports.hasSynth
+      ? { speaking: window.speechSynthesis.speaking, paused: window.speechSynthesis.paused, pending: window.speechSynthesis.pending }
+      : {}
+    const preview = (cleanedText || '').slice(0, 200)
+    const titlePreview = rawTitle.slice(0, 120)
+    const contentPreview = rawContent.slice(0, 120)
+    const cleanedTitlePreview = (cleanedTitle || '').slice(0, 200)
+    const cleanedContentPreview = (cleanedContent || '').slice(0, 200)
+    // Unconditional console for quick visibility
+    // eslint-disable-next-line no-console
+    console.log('[sermon] Speak clicked', {
+      slug: id,
+      rawTitleLen: rawTitle.length,
+      rawContentLen: rawContent.length,
+      rawTitle,
+      rawContentFirst2000,
+      titlePreview,
+      contentPreview,
+      sanitizedLen: (cleanedText||'').length,
+      sanitizedPreview: preview,
+      cleanedTitlePreview,
+      cleanedContentPreview,
+      hasContent: !!cleanedText,
+      supports,
+      engine,
+    })
+    dlog('sermon', 'Speak clicked', { slug: id, len: (cleanedText||'').length, hasContent: !!cleanedText })
+    try {
+      // Đọc tiêu đề trước, rồi nội dung – tách đoạn để speakSmart tạo ranh giới chunk
+      const joined = [cleanedTitle, cleanedContent].filter(Boolean).join('\n\n')
+      if (joined) {
+        // dùng speakSmart để xử lý chunk và fallback tốt hơn
+        speakSmart(joined, { lang: 'vi-VN', pauseMs: 450 })
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[sermon] speak() threw', e)
     }
   }
+
+  // Chỉ bật nút đọc khi có văn bản sạch từ DB
+  const canRead = !!cleanedText
+  useEffect(() => {
+    dlog('sermon', 'Detail mounted', { slug: id, canRead, len: (cleanedText||'').length })
+    return () => {
+      dlog('sermon', 'Detail cleanup', { guard: cleanupGuardRef.current })
+    }
+  }, [id, canRead, cleanedText])
 
   const renderContent = (text = '') => {
     const renderInline = (s='') => {
@@ -57,13 +142,14 @@ export default function SermonDetail() {
           </Reveal>
           <Reveal delay={80}>
           <div className="mt-6">
-            <div className="text-xs uppercase tracking-widest text-neutral-500">{sermon?.date} • {sermon?.pastor}</div>
+            <div className="text-xs uppercase tracking-widest text-neutral-500">{sermon?.date} • {sermon?.pastor} {typeof sermon?.views === 'number' ? `• ${sermon?.views} lượt đọc` : ''}</div>
             <h1 className="font-display text-3xl mt-2">{sermon?.title}</h1>
-            <div className="mt-4 flex items-center gap-2 flex-wrap">
+            {/* TTS controls dưới tiêu đề */}
+            <div className="mt-4 flex items-center gap-2 flex-wrap min-h-[44px]">
               {!isSpeaking ? (
                 <button
                   onClick={handleSpeak}
-                  disabled={!sermon?.title || !sermon?.content}
+                  disabled={!canRead}
                   className="inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition bg-primary text-black hover:brightness-110 active:translate-y-px disabled:opacity-50"
                 >
                   <span>🔊</span>
@@ -72,17 +158,17 @@ export default function SermonDetail() {
               ) : (
                 <>
                   {isPaused ? (
-                    <button onClick={resume} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition">
+                    <button onClick={resume} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition min-h-[44px]">
                       <span>▶</span>
                       <span>Tiếp tục</span>
                     </button>
                   ) : (
-                    <button onClick={pause} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition">
+                    <button onClick={pause} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition min-h-[44px]">
                       <span>⏸</span>
                       <span>Tạm dừng</span>
                     </button>
                   )}
-                  <button onClick={stop} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition">
+                  <button onClick={stop} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition min-h-[44px]">
                     <span>⏹</span>
                     <span>Dừng</span>
                   </button>

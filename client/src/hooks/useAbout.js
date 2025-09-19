@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { apiUrl } from '../lib/apiBase'
 
 const KEY = 'parish_about_content_v1'
 
@@ -42,12 +43,33 @@ function normalize(c) {
 
 export function useAboutContent() {
   const [content, setContent] = useState(defaultContent)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY)
       if (raw) setContent(normalize(JSON.parse(raw)))
     } catch {}
+    ;(async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(apiUrl('/about'))
+        if (res.ok) {
+          const data = await res.json().catch(()=> ({}))
+          if (data && Object.keys(data).length) {
+            const n = normalize(data)
+            setContent(n)
+            try { localStorage.setItem(KEY, JSON.stringify(n)) } catch {}
+          }
+        }
+      } catch (e) {
+        setError(e?.message || 'Load failed')
+      } finally {
+        setLoading(false)
+      }
+    })()
     const reload = () => {
       try { const raw2 = localStorage.getItem(KEY); if (raw2) setContent(normalize(JSON.parse(raw2))) } catch {}
     }
@@ -61,12 +83,34 @@ export function useAboutContent() {
     }
   }, [])
 
-  const save = (next) => {
+  const getAuthToken = () => { try { return localStorage.getItem('auth_token') } catch { return null } }
+  const save = async (next) => {
     const n = normalize(next)
+    const token = getAuthToken()
+    if (token) {
+      const res = await fetch(apiUrl('/about'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(n)
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        const details = errorData.details?.map?.(d=>`${d.path?.join?.('.')||d.param||''}: ${d.msg||d.message||''}`).join('; ')
+        const msg = errorData.error === 'Validation failed' && details ? `${errorData.error}: ${details}` : (errorData.error || `Server error: ${res.status}`)
+        throw new Error(msg)
+      }
+      const saved = await res.json().catch(()=> n)
+      const merged = normalize(saved)
+      setContent(merged)
+      try { localStorage.setItem(KEY, JSON.stringify(merged)) } catch {}
+      try { window.dispatchEvent(new CustomEvent('aboutContentUpdated')) } catch {}
+      return merged
+    }
     setContent(n)
-    localStorage.setItem(KEY, JSON.stringify(n))
+    try { localStorage.setItem(KEY, JSON.stringify(n)) } catch {}
     try { window.dispatchEvent(new CustomEvent('aboutContentUpdated')) } catch {}
+    return n
   }
 
-  return { content, save }
+  return { content, save, loading, error }
 }

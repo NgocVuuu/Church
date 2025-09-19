@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import CloudinaryUpload from '../../components/CloudinaryUpload'
 import { useBanner } from '../../hooks/useBanner'
-import { useContactContent } from '../../hooks/useContactContent'
+import { useContactContent } from '../../hooks/useContact'
 import { useToast } from '../../components/Toast'
 
 export default function AdminContact() {
@@ -12,7 +12,14 @@ export default function AdminContact() {
 
   useEffect(() => { setDraft(content) }, [content])
 
-  const onSave = () => { save(draft); toast.success('Đã lưu nội dung trang Liên hệ') }
+  const onSave = async () => {
+    try {
+      await save(draft)
+      toast.success('Đã lưu nội dung trang Liên hệ')
+    } catch (e) {
+      toast.error(`Lưu thất bại: ${e?.message || 'Lỗi không xác định'}`)
+    }
+  }
 
   return (
     <div className="space-y-8">

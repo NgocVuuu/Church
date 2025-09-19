@@ -7,23 +7,66 @@ import { useToast } from '../../components/Toast'
 export default function AdminSermons() {
   const [imageUrl, setImageUrl] = useState('')
   const banner = useBanner('sermons')
-  const { sermons, addSermon, updateSermon, removeSermon } = useSermons()
+  const { sermons, addSermon, updateSermon, removeSermon, slugify, ensureUniqueSlug, refetch } = useSermons()
   const toast = useToast()
   const [form, setForm] = useState({ title: '', pastor: '', date: '', summary: '', content: '' })
   const [editingId, setEditingId] = useState(null)
   const summaryRef = useRef(null)
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
-    if (editingId) {
-      updateSermon(editingId, { ...form, image: imageUrl })
-      toast.success('Đã cập nhật bài giảng')
-      setEditingId(null)
-    } else {
-      addSermon({ ...form, image: imageUrl, content: form.summary })
-      toast.success('Đã thêm bài giảng')
+    try {
+      if (!form.title?.trim()) {
+        toast.error('Vui lòng nhập tiêu đề')
+        return
+      }
+      // Tạo summary <= 500 ký tự từ nội dung textarea (đang dùng như content)
+      const makeSummary = (text = '', max = 500) => {
+        const clean = (text || '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/__([^_]+)__/g, '$1')
+          .replace(/\*([^*]+)\*/g, '$1')
+          .replace(/_([^_]+)_/g, '$1')
+          .replace(/`([^`]+)`/g, '$1')
+          .replace(/https?:\/\/\S+/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+        return clean.length > max ? clean.slice(0, max - 1).trimEnd() + '…' : clean
+      }
+
+      // Map và chuẩn hóa dữ liệu gửi lên server
+      const base = {
+        title: form.title?.trim(),
+        pastor: form.pastor?.trim(),
+        date: form.date?.trim(),
+        image: imageUrl?.trim(),
+        content: (form.content && form.content.trim()) || (form.summary || ''),
+      }
+      base.summary = makeSummary(base.content || base.summary || '')
+
+      if (editingId) {
+        await updateSermon(editingId, base)
+        toast.success('Đã cập nhật bài giảng')
+        setEditingId(null)
+      } else {
+        // Tạo slug duy nhất (best-effort) để hạn chế lỗi 409 từ server
+        const rawSlug = slugify(base.title)
+        const uniqueSlug = ensureUniqueSlug(rawSlug)
+        await addSermon({ ...base, slug: uniqueSlug })
+        toast.success('Đã thêm bài giảng')
+      }
+      // Xác nhận đã lưu ở DB bằng cách refetch (tránh chỉ thấy state cục bộ)
+      try { await refetch() } catch {}
+
+      // Reset form
+      setForm({ title: '', pastor: '', date: '', summary: '', content: '' })
+      setImageUrl('')
+    } catch (err) {
+      const msg = err?.message || 'Lỗi khi lưu bài giảng'
+      if (/slug/i.test(msg)) toast.error('Slug đã tồn tại, vui lòng đổi tiêu đề')
+      else if (/Authentication/i.test(msg) || /401/.test(msg)) toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại')
+      else toast.error(msg)
     }
-    setForm({ title: '', pastor: '', date: '', summary: '', content: '' })
-    setImageUrl('')
   }
   // List state
   const normalizeVN = (s='') => s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g,'d').replace(/Đ/g,'D')

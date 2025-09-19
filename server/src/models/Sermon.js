@@ -9,6 +9,7 @@ const SermonSchema = new mongoose.Schema(
     image: { type: String, default: '' },
     summary: { type: String, default: '' },
     content: { type: String, default: '' },
+    views: { type: Number, default: 0 },
   },
   { timestamps: true }
 )

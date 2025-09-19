@@ -49,7 +49,7 @@ export default function PapalQuotes({ quotes = defaultQuotes }) {
   }
 
   return (
-    <section className="py-16 bg-white">
+  <section className="py-10 bg-white">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-8">
           <div className="uppercase tracking-[0.35em] text-neutral-500 text-xs">Huấn từ Đức Giáo hoàng</div>

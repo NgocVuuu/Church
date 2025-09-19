@@ -41,16 +41,19 @@ const AnnouncementSchema = new mongoose.Schema({
   date: { type: String, default: '' }
 })
 
-const HomeContentSchema = new mongoose.Schema({
+const HomeSchema = new mongoose.Schema({
   slides: [SlideSchema],
   mass: {
     weekly: [MassTimeSchema],
     specials: [SpecialMassSchema],
     note: { type: String, default: '' }
   },
+  // Featured event (legacy)
   event: EventSchema,
+  // New: list of upcoming events
+  events: [EventSchema],
   quotes: [QuoteSchema],
   announcements: [AnnouncementSchema]
-}, { timestamps: true })
+}, { timestamps: true, collection: 'home' })
 
-export default mongoose.model('HomeContent', HomeContentSchema)
+export default mongoose.model('Home', HomeSchema)

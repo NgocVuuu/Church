@@ -26,7 +26,7 @@ export default function UpcomingEvent({
   const { days, hours, minutes, seconds } = useCountdown(date)
 
   return (
-    <section id="su-kien" className="relative py-12 md:py-16 bg-white">
+    <section id="su-kien" className="relative py-8 md:py-10 bg-white">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 gap-0 overflow-hidden rounded-md">
         {/* Left: text card */}
   <div className="relative bg-[#cdb79e]/80 text-black p-5 md:p-10 flex flex-col justify-center">

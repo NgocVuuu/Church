@@ -12,9 +12,17 @@ router.get('/', async (req, res) => {
 })
 
 router.get('/:slug', async (req, res) => {
-  const item = await Sermon.findOne({ slug: req.params.slug }).lean()
-  if (!item) return res.status(404).json({ error: 'Not found' })
-  res.json(item)
+  try {
+    const updated = await Sermon.findOneAndUpdate(
+      { slug: req.params.slug },
+      { $inc: { views: 1 } },
+      { new: true }
+    ).lean()
+    if (!updated) return res.status(404).json({ error: 'Not found' })
+    res.json(updated)
+  } catch (e) {
+    res.status(500).json({ error: 'read_failed' })
+  }
 })
 
 router.post('/', auth, adminOnly, validateSermon, async (req, res) => {

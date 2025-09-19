@@ -1,0 +1,17 @@
+[
+  {
+    "old": "aboutcontents",
+    "new": "about",
+    "dropTarget": true
+  },
+  {
+    "old": "homecontents",
+    "new": "home",
+    "dropTarget": true
+  },
+  {
+    "old": "contactcontents",
+    "new": "contact",
+    "dropTarget": true
+  }
+]

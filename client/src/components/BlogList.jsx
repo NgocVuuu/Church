@@ -17,7 +17,7 @@ export default function BlogList({ items }) {
   }
   const list = items && items.length ? items : [...posts].sort((a,b) => effectiveTs(b) - effectiveTs(a)).slice(0,3)
   return (
-    <section className="py-16 bg-white">
+  <section className="py-10 bg-white">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-8">
           <div className="uppercase tracking-[0.35em] text-neutral-500 text-xs">Bài viết</div>
@@ -34,6 +34,7 @@ export default function BlogList({ items }) {
                 <div className="p-4 flex-1 flex flex-col min-h-0 gap-2">
                   <h4 className="font-display text-lg clamp-2">{b.title}</h4>
                   <div className="text-sm text-neutral-600">{b.date} · bởi <span className="font-medium">{b.author}</span></div>
+                    <div className="text-sm text-neutral-600">{b.date} · bởi <span className="font-medium">{b.author}</span> · {typeof b.views === 'number' ? `${b.views} lượt đọc` : null}</div>
                   <Link to={`/bai-viet/${b.slug || b.id}`} className="inline-flex items-center text-primary font-medium hover:underline mt-auto">Đọc thêm →</Link>
                 </div>
               </article>
@@ -51,6 +52,7 @@ export default function BlogList({ items }) {
               <div className="p-4 flex-1 flex flex-col min-h-0 gap-2">
                 <h4 className="font-display text-xl clamp-2">{b.title}</h4>
                 <div className="text-sm text-neutral-600">{b.date} · bởi <span className="font-medium">{b.author}</span></div>
+                  <div className="text-sm text-neutral-600">{b.date} · bởi <span className="font-medium">{b.author}</span> · {typeof b.views === 'number' ? `${b.views} lượt đọc` : null}</div>
                 <Link to={`/bai-viet/${b.slug || b.id}`} className="inline-flex items-center text-primary font-medium hover:underline mt-auto">Đọc thêm →</Link>
               </div>
             </article>

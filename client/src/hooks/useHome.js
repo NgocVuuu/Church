@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { apiUrl } from '../lib/apiBase'
 
 const KEY = 'parish_home_content_v2'
 const OLD_KEY = 'parish_home_content_v1'
@@ -52,6 +53,7 @@ const defaultContent = {
     date: '2026-01-01T08:30:00',
     image: 'https://images.unsplash.com/photo-1543306730-efd0a3fa3a83?q=80&w=1600&auto=format&fit=crop'
   },
+  events: [],
   quotes: [
     {
       title: 'Đức ái là trái tim của Giáo Hội',
@@ -112,6 +114,23 @@ function normalizeContent(src = {}) {
     date: c.event?.date || '',
     image: c.event?.image || '',
   }
+  // events list (new)
+  const makeEvent = (e) => ({
+    title: e?.title || '',
+    timeLabel: e?.timeLabel || '',
+    pastor: e?.pastor || '',
+    address: e?.address || '',
+    date: e?.date || '',
+    image: e?.image || '',
+  })
+  c.events = Array.isArray(c.events) ? c.events.map(makeEvent) : []
+  if ((!c.events || c.events.length === 0) && c.event?.title) {
+    c.events = [makeEvent(c.event)]
+  }
+  // Ensure featured event mirrors first upcoming when legacy missing
+  if (!c.event?.title && c.events.length) {
+    c.event = makeEvent(c.events[0])
+  }
   // quotes
   c.quotes = Array.isArray(c.quotes) ? c.quotes.map(q => ({
     title: q?.title || '',
@@ -130,6 +149,8 @@ function normalizeContent(src = {}) {
 
 export function useHomeContent() {
   const [content, setContent] = useState(defaultContent)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     try {
@@ -148,6 +169,26 @@ export function useHomeContent() {
         }
       }
     } catch {}
+    // Try loading from API as source of truth
+    ;(async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(apiUrl('/home'))
+        if (res.ok) {
+          const data = await res.json().catch(()=> ({}))
+          if (data && Object.keys(data).length) {
+            const norm = normalizeContent(data)
+            setContent(norm)
+            try { localStorage.setItem(KEY, JSON.stringify(norm)) } catch {}
+          }
+        }
+      } catch (e) {
+        setError(e?.message || 'Load failed')
+      } finally {
+        setLoading(false)
+      }
+    })()
     // Live-sync: update when another component saves or when storage changes
     const reload = () => {
       try {
@@ -165,13 +206,35 @@ export function useHomeContent() {
     }
   }, [])
 
-  const save = (next) => {
+  const getAuthToken = () => { try { return localStorage.getItem('auth_token') } catch { return null } }
+
+  const save = async (next) => {
     const norm = normalizeContent(next)
-    setContent(norm)
-    localStorage.setItem(KEY, JSON.stringify(norm))
-    // Notify other hook instances
-    try { window.dispatchEvent(new CustomEvent('homeContentUpdated')) } catch {}
+    const token = getAuthToken()
+    if (token) {
+      // Try saving to server
+      const res = await fetch(apiUrl('/home'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(norm)
+      })
+      if (!res.ok) {
+        // Surface server-side validation errors when present
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        const details = errorData.details?.map?.(d=>`${d.path?.join?.('.')||d.param||''}: ${d.msg||d.message||''}`).join('; ')
+        const msg = errorData.error === 'Validation failed' && details ? `${errorData.error}: ${details}` : (errorData.error || `Server error: ${res.status}`)
+        throw new Error(msg)
+      }
+      const saved = await res.json().catch(()=> norm)
+      const merged = normalizeContent(saved)
+      setContent(merged)
+      try { localStorage.setItem(KEY, JSON.stringify(merged)) } catch {}
+      try { window.dispatchEvent(new CustomEvent('homeContentUpdated')) } catch {}
+      return merged
+    }
+    // No token: do not silently save locally; make it explicit to log in
+    throw new Error('Cần đăng nhập (Admin) để lưu nội dung lên máy chủ')
   }
 
-  return { content, save }
+  return { content, save, loading, error }
 }

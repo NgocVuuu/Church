@@ -88,7 +88,7 @@ function InlineEditableDate({ value, onSave, className = '' }) {
 }
 
 export default function AdminGallery() {
-  const { items, sorted, addItem, removeItem, save, updateItem, eventsMeta, setEventMeta, renameEvent } = useGallery()
+  const { items, groups: serverGroups, sorted, addItem, removeItem, deleteGroup, save, updateItem, renameEvent, setGroupDate } = useGallery()
   const toast = useToast()
   const [form, setForm] = useState({ event: '', date: '' })
   const [selectedIds, setSelectedIds] = useState(new Set())
@@ -160,14 +160,13 @@ export default function AdminGallery() {
           })
           // Build group list with sorting by meta.date (if present) else latest item ts
           const groups = Array.from(groupsMap.entries()).map(([eventName, arr]) => {
-            const meta = eventsMeta[eventName] || {}
             const dates = arr.map(a => a.date || '').filter(Boolean)
             const latestItemDate = dates.sort().reverse()[0] || ''
             const latestItemTs = Math.max(...arr.map(a => a.uploadedAt || 0))
-            const metaTs = meta.date ? Date.parse(meta.date) : NaN
-            const effectiveTs = Number.isFinite(metaTs) ? metaTs : (latestItemDate ? Date.parse(latestItemDate) : latestItemTs)
-            return { eventName, items: arr, meta, effectiveTs }
+            const effectiveTs = latestItemDate ? Date.parse(latestItemDate) : latestItemTs
+            return { eventName, items: arr, effectiveTs, latestItemDate }
           }).sort((a, b) => b.effectiveTs - a.effectiveTs)
+          const serverDateByTitle = new Map((serverGroups||[]).map(g => [g.title, g.date || '']))
 
           return (
             <div className="relative">
@@ -183,25 +182,39 @@ export default function AdminGallery() {
                         onSave={(val)=> { if (val !== g.eventName) renameEvent(g.eventName, val) }}
                         placeholder="Tên sự kiện"
                       />
-                        <div className="mt-1 text-sm text-neutral-700 inline-flex items-center gap-2">
-                          <span className="text-neutral-500">Ngày:</span>
-                          <InlineEditableDate
-                            value={g.meta.date || ''}
-                            onSave={(val)=> setEventMeta(g.eventName, { date: val })}
-                          />
-                        </div>
+                      {/* Date under title */}
+                      <div className="w-full pl-6 -mt-2">
+                        <InlineEditableDate
+                          value={serverDateByTitle.get(g.eventName) || g.latestItemDate || ''}
+                          onSave={async (val)=> {
+                            try {
+                              await setGroupDate(g.eventName, val)
+                              toast.success('Đã cập nhật ngày cho sự kiện')
+                            } catch (e) {
+                              toast.error('Cập nhật ngày thất bại')
+                            }
+                          }}
+                        />
+                      </div>
                       <div className="ml-auto flex items-center gap-3 flex-wrap">
                         <button
                           className="text-xs px-2 py-1 rounded border hover:bg-neutral-50"
-                          onClick={() => {
+                          onClick={async () => {
                             if (!confirm(`Xóa toàn bộ ảnh của sự kiện "${g.eventName}"?`)) return
-                            save(prev => prev.filter(i => !g.items.some(x => x.id === i.id)))
-                            toast.info(`Đã xóa sự kiện "${g.eventName}"`)
+                            try {
+                              await deleteGroup(g.eventName)
+                              toast.info(`Đã xóa sự kiện "${g.eventName}"`)
+                            } catch (e) {
+                              toast.error('Xóa sự kiện thất bại')
+                            }
                           }}
                         >Xóa sự kiện</button>
                         <div className="flex items-center gap-2">
                           <CloudinaryUpload
-                            onUploaded={(url)=> addItem({ url, event: g.eventName, date: '' })}
+                            onUploaded={(url)=> {
+                              const groupDate = serverDateByTitle.get(g.eventName) || g.latestItemDate || ''
+                              addItem({ url, event: g.eventName, date: groupDate })
+                            }}
                             folder={`church/gallery/${g.eventName.replace(/\s+/g,'-').toLowerCase()}`}
                             label="Thêm ảnh vào sự kiện"
                             size="sm"
@@ -241,6 +254,11 @@ export default function AdminGallery() {
                                 setSelectedIds(next)
                               }}
                             />
+                            {(i.date || g.latestItemDate) && (
+                              <span className="absolute bottom-2 left-2 text-[11px] px-1.5 py-0.5 rounded bg-white/90 border shadow text-neutral-800">
+                                {i.date || g.latestItemDate}
+                              </span>
+                            )}
                             <button
                               onClick={(e) => {
                                 e.preventDefault()

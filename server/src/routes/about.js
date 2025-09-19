@@ -1,15 +1,17 @@
 import { Router } from 'express'
-import AboutContent from '../models/AboutContent.js'
+import About from '../models/About.js'
 import { auth, adminOnly } from '../middleware/auth.js'
 import { validateAboutContent } from '../middleware/validation.js'
 
 const router = Router()
 
+const CREATE_DEFAULTS_ON_GET = process.env.CREATE_DEFAULTS_ON_GET === '1'
+
 // Get about content
 router.get('/', async (req, res) => {
   try {
-    let content = await AboutContent.findOne().lean()
-    if (!content) {
+    let content = await About.findOne().lean()
+    if (!content && CREATE_DEFAULTS_ON_GET) {
       // Create default content if none exists
       const defaultContent = {
         intro: {
@@ -40,8 +42,9 @@ router.get('/', async (req, res) => {
           { tag: 'Giới trẻ', title: 'Sinh hoạt thứ 7' }
         ]
       }
-      content = await AboutContent.create(defaultContent)
+      content = await About.create(defaultContent)
     }
+    if (!content) return res.json({})
     res.json(content)
   } catch (error) {
     res.status(500).json({ error: 'Failed to get about content' })
@@ -51,11 +54,11 @@ router.get('/', async (req, res) => {
 // Update about content
 router.put('/', auth, adminOnly, validateAboutContent, async (req, res) => {
   try {
-    let content = await AboutContent.findOne()
+    let content = await About.findOne()
     if (!content) {
-      content = await AboutContent.create(req.body)
+      content = await About.create(req.body)
     } else {
-      content = await AboutContent.findOneAndUpdate({}, req.body, { new: true })
+      content = await About.findOneAndUpdate({}, req.body, { new: true })
     }
     res.json(content)
   } catch (error) {

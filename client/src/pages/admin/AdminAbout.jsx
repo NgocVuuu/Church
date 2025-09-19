@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import CloudinaryUpload from '../../components/CloudinaryUpload'
 import { useBanner } from '../../hooks/useBanner'
-import { useAboutContent } from '../../hooks/useAboutContent'
+import { useAboutContent } from '../../hooks/useAbout'
+import { useToast } from '../../components/Toast'
 
 export default function AdminAbout() {
   const banner = useBanner('about')
   const { content, save } = useAboutContent()
+  const toast = useToast()
   const [local, setLocal] = useState(content)
   // Sync local state when content updates
   useEffect(() => { setLocal(content) }, [content])
@@ -19,7 +21,7 @@ export default function AdminAbout() {
           {banner.url && <img src={banner.url} alt="banner" className="h-16 rounded border" />}
         </div>
       </div>
-      <form className="space-y-4 max-w-3xl" onSubmit={(e)=>{ e.preventDefault(); save(local) }}>
+  <form className="space-y-4 max-w-3xl" onSubmit={async (e)=>{ e.preventDefault(); try { await save(local); toast.success('Đã lưu nội dung trang Giới thiệu') } catch (err) { toast.error(`Lưu thất bại: ${err?.message || 'Lỗi không xác định'}`) } }}>
         <div>
           <label className="text-sm text-neutral-700">Tiêu đề mục giới thiệu</label>
           <input

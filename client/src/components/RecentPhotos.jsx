@@ -88,7 +88,7 @@ export default function RecentPhotos({ limit = 12, showViewAll = true }) {
   const dragPercent = (dragDx / containerWidthRef.current) * 100
 
   return (
-    <section className="py-16 bg-white">
+  <section className="py-8 md:py-9 bg-white">
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-8 flex items-end justify-between">
           <div className="text-left">

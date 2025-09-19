@@ -14,6 +14,8 @@ const defaultContent = {
 
 export function useContactContent() {
   const [content, setContent] = useState(defaultContent)
+  const [loading] = useState(false)
+  const [error] = useState(null)
 
   useEffect(() => {
     try {
@@ -23,15 +25,15 @@ export function useContactContent() {
         setContent({ ...defaultContent, ...parsed })
       }
     } catch {}
+    // No server persistence for contact; client-only.
   }, [])
 
-  const save = (next) => {
+  const save = async (next) => {
     const merged = { ...defaultContent, ...next }
     setContent(merged)
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
-    } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)) } catch {}
+    return merged
   }
 
-  return { content, save }
+  return { content, save, loading, error }
 }

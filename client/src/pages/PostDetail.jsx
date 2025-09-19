@@ -7,28 +7,104 @@ import { usePosts } from '../hooks/usePosts'
 import { useSermons } from '../hooks/useSermons'
 import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import Reveal from '../components/Reveal'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { dlog } from '../lib/debug'
 
 export default function PostDetail() {
   const { slug } = useParams()
-  const { posts, getPostBySlug } = usePosts()
+  const { posts, getPostBySlug, fetchPostBySlug } = usePosts()
   const { sermons } = useSermons()
   const post = getPostBySlug(slug) || posts[0]
-  const { isSpeaking, isPaused, speakSmart, pause, resume, stop, forceStop } = useTextToSpeech()
+  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop } = useTextToSpeech()
 
-  // Stop TTS when component unmounts or route changes
+  // Dừng đọc khi unmount hoặc đổi bài (slug)
+  const cleanupGuardRef = useRef(false)
   useEffect(() => {
+    // Fetch to increment views and refresh post data
+    if (slug) fetchPostBySlug(slug)
     return () => {
+      // In React StrictMode (dev), effects run cleanup immediately after mount.
+      // Skip the first cleanup once to prevent cancelling speech instantly.
+      if (import.meta.env.DEV && !cleanupGuardRef.current) {
+        cleanupGuardRef.current = true
+        return
+      }
       forceStop()
     }
-  }, [forceStop, slug]) // Also stop when slug changes
+  }, [forceStop, slug])
 
+  // Chuẩn hóa text (chỉ đọc nội dung đến từ DB, không lấy từ DOM)
+  function getReadableText(title = '', content = '') {
+    const combine = [title, content].filter(Boolean).join('. ')
+    if (!combine) return ''
+    // Remove HTML tags
+    let s = combine.replace(/<[^>]+>/g, ' ')
+    // Basic HTML entity decoding
+    s = s
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+    // Strip common Markdown markers
+    s = s
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/^\s*#{1,6}\s*/gm, '')
+    // Remove URLs
+    s = s.replace(/https?:\/\/\S+/g, '')
+    // Collapse whitespace
+    s = s.replace(/\s+/g, ' ').trim()
+    return s
+  }
+
+  const cleanedText = useMemo(() => getReadableText(post?.title, post?.content), [post?.title, post?.content])
   const handleSpeak = () => {
-    // Call speakSmart directly from the user gesture; the hook cancels any existing speech internally
-    if (post?.title && post?.content) {
-      speakSmart(`${post.title}. ${post.content}`)
+    const rawTitle = post?.title || ''
+    const rawContent = post?.content || ''
+    const supports = {
+      hasSynth: typeof window !== 'undefined' && !!window.speechSynthesis,
+      hasUtter: typeof window !== 'undefined' && 'SpeechSynthesisUtterance' in window,
+    }
+    const engine = supports.hasSynth
+      ? { speaking: window.speechSynthesis.speaking, paused: window.speechSynthesis.paused, pending: window.speechSynthesis.pending }
+      : {}
+    const preview = (cleanedText || '').slice(0, 120)
+    const titlePreview = rawTitle.slice(0, 120)
+    const contentPreview = rawContent.slice(0, 120)
+  // Unconditional log for visibility
+  // eslint-disable-next-line no-console
+    console.log('[post] Speak clicked', {
+      slug,
+      rawTitleLen: rawTitle.length,
+      rawContentLen: rawContent.length,
+      titlePreview,
+      contentPreview,
+      sanitizedLen: (cleanedText||'').length,
+      sanitizedPreview: preview,
+      hasContent: !!cleanedText,
+      supports,
+      engine,
+    })
+  dlog('post', 'Speak clicked', { slug, len: (cleanedText||'').length, hasContent: !!cleanedText, supports, engine, preview })
+    try {
+      if (cleanedText) speak(cleanedText, { lang: 'vi-VN' })
+      else dlog('post', 'No cleanedText → button should be disabled')
+    } catch (e) {
+      dlog('post', 'speak() threw', e)
     }
   }
+
+  // Chỉ bật nút đọc khi có văn bản sạch từ DB
+  const canRead = !!cleanedText
+  useEffect(() => {
+    dlog('post', 'Detail mounted', { slug, canRead, len: (cleanedText||'').length })
+    return () => { dlog('post', 'Detail cleanup', { guard: cleanupGuardRef.current }) }
+  }, [slug, canRead, cleanedText])
 
   const renderContent = (text = '') => {
     const renderInline = (s='') => {
@@ -58,14 +134,14 @@ export default function PostDetail() {
           </Reveal>
           <Reveal delay={80}>
           <div className="mt-6">
-            <div className="text-xs uppercase tracking-widest text-neutral-500">{post?.date} • {post?.author}</div>
+            <div className="text-xs uppercase tracking-widest text-neutral-500">{post?.date} • {post?.author} {typeof post?.views === 'number' ? `• ${post?.views} lượt đọc` : ''}</div>
             <h1 className="font-display text-3xl mt-2">{post?.title}</h1>
+            {/* TTS controls dưới tiêu đề */}
             <div className="mt-4 flex items-center gap-2 flex-wrap">
-              {/* Main TTS Controls */}
               {!isSpeaking ? (
                 <button
                   onClick={handleSpeak}
-                  disabled={!post?.title || !post?.content}
+                  disabled={!canRead}
                   className="inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition bg-primary text-black hover:brightness-110 active:translate-y-px disabled:opacity-50"
                 >
                   <span>🔊</span>
@@ -73,11 +149,10 @@ export default function PostDetail() {
                 </button>
               ) : (
                 <>
-                  {/* Pause/Resume button - chỉ hiện khi đang đọc */}
                   {isPaused ? (
                     <button 
                       onClick={resume} 
-                      className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition"
+                       className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition min-h-[44px]"
                     >
                       <span>▶</span>
                       <span>Tiếp tục</span>
@@ -85,16 +160,15 @@ export default function PostDetail() {
                   ) : (
                     <button 
                       onClick={pause} 
-                      className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition"
+                       className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition min-h-[44px]"
                     >
                       <span>⏸</span>
                       <span>Tạm dừng</span>
                     </button>
                   )}
-                  {/* Stop button - luôn hiện khi đang đọc */}
                   <button 
                     onClick={stop} 
-                    className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition"
+                     className="inline-flex items-center gap-2 rounded-full border px-4 py-2 hover:bg-neutral-100 active:translate-y-px transition min-h-[44px]"
                   >
                     <span>⏹</span>
                     <span>Dừng</span>

@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiUrl } from '../lib/apiBase'
 
-const KEY = 'parish_posts_v1'
-const defaults = [
-  { id: '1', slug: 'niem-vui-tin-mung', title: 'Niềm vui Tin Mừng', date: '12/09/2025', author: 'Ban Truyền thông', image: '', content: 'Suy niệm về sứ điệp hiệp hành nơi cộng đoàn. Nội dung đầy đủ bài viết...' },
-  { id: '2', slug: 'nhip-song-giao-xu', title: 'Nhịp sống giáo xứ', date: '05/09/2025', author: 'Giáo lý viên', image: '', content: 'Những hoạt động nổi bật trong tuần qua. Nội dung đầy đủ...' },
-  { id: '3', slug: 'thong-bao-muc-vu', title: 'Thông báo mục vụ', date: '01/09/2025', author: 'Văn phòng Giáo xứ', image: '', content: 'Lịch sinh hoạt và các lưu ý dành cho cộng đoàn. Nội dung...' },
-]
-
 function normalizeVN(s='') {
   return s
     .toString()
@@ -45,66 +38,32 @@ function parseVNDate(str='') {
 }
 
 export function usePosts() {
-  const [posts, setPosts] = useState(defaults)
+  const [posts, setPosts] = useState([])
+  const getAuthToken = () => { try { return localStorage.getItem('auth_token') } catch { return null } }
 
   // helper to normalize server doc shape
-  const fromServer = (doc) => ({ id: doc._id || doc.id, title: doc.title, slug: doc.slug, author: doc.author || '', date: doc.date || todayVN(), image: doc.image || '', content: doc.content || '', createdAt: doc.createdAt ? new Date(doc.createdAt).getTime() : Date.now() })
+  const fromServer = (doc) => ({ id: doc._id || doc.id, title: doc.title, slug: doc.slug, author: doc.author || '', date: doc.date || todayVN(), image: doc.image || '', content: doc.content || '', views: typeof doc.views === 'number' ? doc.views : 0, createdAt: doc.createdAt ? new Date(doc.createdAt).getTime() : Date.now() })
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       try {
-        // Try backend first
         const res = await fetch(apiUrl('/posts'))
-        if (res.ok) {
-          const data = await res.json()
-          if (Array.isArray(data)) {
-            const mapped = data.map(fromServer)
-            if (!cancelled) {
-              setPosts(mapped)
-              try { localStorage.setItem(KEY, JSON.stringify(mapped)) } catch {}
-            }
-            return
-          }
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        if (!Array.isArray(data)) throw new Error('Invalid response')
+        const mapped = data.map(fromServer)
+        if (!cancelled) setPosts(mapped)
       } catch (e) {
-        // ignore and fallback to localStorage
+        if (!cancelled) setPosts([])
+      } finally {
+        // One-time cleanup of old local cache if exists
+        try { localStorage.removeItem('parish_posts_v1') } catch {}
       }
-      // Fallback to localStorage
-      try {
-        const raw = localStorage.getItem(KEY)
-        if (raw) {
-          let loaded = JSON.parse(raw)
-          // migrate missing fields
-          let changed = false
-          const ensureUnique = (slug, idx) => {
-            let s = slug
-            let n = 2
-            const exists = (val) => loaded.some((p, i) => i !== idx && p.slug === val)
-            while (exists(s)) { s = `${slug}-${n++}` }
-            return s
-          }
-          loaded = loaded.map((p, i) => {
-            let next = { ...p }
-            if (!next.slug) { changed = true; const s = ensureUnique(slugify(next.title), i); next.slug = s }
-            if (!next.date) { changed = true; next.date = todayVN() }
-            if (!next.createdAt) {
-              const ts = parseVNDate(next.date)
-              next.createdAt = Number.isFinite(ts) ? ts : Date.now() - i
-              changed = true
-            }
-            return next
-          })
-          if (changed) { localStorage.setItem(KEY, JSON.stringify(loaded)) }
-          if (!cancelled) setPosts(loaded)
-        }
-      } catch {}
     }
     load()
     return () => { cancelled = true }
   }, [])
-
-  const savePosts = (next) => { setPosts(next); try { localStorage.setItem(KEY, JSON.stringify(next)) } catch {} }
   const ensureUniqueSlug = (slug, excludeId) => {
     let s = slug
     let n = 2
@@ -113,37 +72,51 @@ export function usePosts() {
     return s
   }
   const addPost = async (post) => {
-    // Try server, fallback to local
-    try {
-      const body = { ...post, slug: post.slug || slugify(post.title), date: post.date || todayVN() }
-      const res = await fetch(apiUrl('/posts'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      if (res.ok) {
-        const data = await res.json()
-        const mapped = fromServer(data)
-        const next = [mapped, ...posts]
-        return savePosts(next)
-      }
-    } catch {}
-    // local fallback
-    const id = Date.now().toString()
-    const rawSlug = post.slug || slugify(post.title)
-    const unique = ensureUniqueSlug(rawSlug)
-    const date = post.date || todayVN()
-    const createdAt = Date.now()
-    const next = [{...post, id, slug: unique, date, createdAt}, ...posts]
-    savePosts(next)
+    const token = getAuthToken()
+    if (!token) throw new Error('Cần đăng nhập')
+    const body = { ...post, slug: post.slug || slugify(post.title), date: post.date || todayVN() }
+    const res = await fetch(apiUrl('/posts'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(body) })
+    const data = await res.json().catch(()=> ({}))
+    if (!res.ok) throw new Error(data?.error || `Lỗi máy chủ (${res.status})`)
+    const mapped = fromServer(data)
+    setPosts([mapped, ...posts])
+    return mapped
   }
   const updatePost = async (id, patch) => {
-    try {
-      await fetch(apiUrl(`/posts/${id}`), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) })
-    } catch {}
-    const next = posts.map(p => p.id === id ? { ...p, ...patch } : p); savePosts(next)
+    const token = getAuthToken()
+    if (!token) throw new Error('Cần đăng nhập')
+    const res = await fetch(apiUrl(`/posts/${id}`), { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(patch) })
+    const data = await res.json().catch(()=> ({}))
+    if (!res.ok) throw new Error(data?.error || `Lỗi máy chủ (${res.status})`)
+    const mapped = fromServer(data)
+    setPosts(posts.map(p => p.id === id ? mapped : p))
+    return mapped
   }
   const removePost = async (id) => {
-    try { await fetch(apiUrl(`/posts/${id}`), { method: 'DELETE' }) } catch {}
-    const next = posts.filter(p => p.id !== id); savePosts(next)
+    const token = getAuthToken()
+    if (!token) throw new Error('Cần đăng nhập')
+    const res = await fetch(apiUrl(`/posts/${id}`), { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
+    const data = await res.json().catch(()=> ({}))
+    if (!res.ok) throw new Error(data?.error || `Lỗi máy chủ (${res.status})`)
+    setPosts(posts.filter(p => p.id !== id))
+    return true
   }
   const getPost = (id) => posts.find(p => p.id === id)
   const getPostBySlug = (slug) => posts.find(p => p.slug === slug)
-  return { posts, savePosts, addPost, updatePost, removePost, getPost, getPostBySlug, slugify, ensureUniqueSlug }
+  const fetchPostBySlug = async (slug) => {
+    try {
+      const res = await fetch(apiUrl(`/posts/${slug}`))
+      if (!res.ok) throw new Error('Not found')
+      const data = await res.json()
+      const mapped = fromServer(data)
+      const next = (() => {
+        const idx = posts.findIndex(p => p.slug === slug)
+        if (idx === -1) return [mapped, ...posts]
+        const copy = posts.slice(); copy[idx] = mapped; return copy
+      })()
+      setPosts(next)
+      return mapped
+    } catch (e) { return null }
+  }
+  return { posts, addPost, updatePost, removePost, getPost, getPostBySlug, fetchPostBySlug, slugify }
 }

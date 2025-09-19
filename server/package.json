@@ -5,7 +5,11 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "rename:collections": "node rename-collections.js",
+    "drop:legacy": "node drop-legacy-collections.js",
+    "migrate:galleryevents": "node migrate-galleryevents-to-home.js",
+    "migrate:gallerygroups": "node migrate-galleryitems-to-gallery-groups.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

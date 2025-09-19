@@ -9,7 +9,7 @@ import RecentPhotos from '../components/RecentPhotos'
 import Footer from '../components/Footer'
 import Reveal from '../components/Reveal'
 import { Link } from 'react-router-dom'
-import { useHomeContent } from '../hooks/useHomeContent'
+import { useHomeContent } from '../hooks/useHome'
 import Announcements from '../components/Announcements'
 
 export default function Home() {
@@ -107,37 +107,45 @@ export default function Home() {
           </div>
         </div>
       </section>
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
     <Reveal>
       <MassSchedule weekly={content.mass.weekly} specials={content.mass.specials} note={content.mass.note} />
     </Reveal>
   </section>
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
     <Reveal delay={50}>
       <Announcements items={content.announcements} />
     </Reveal>
   </section>
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
     <Reveal delay={100}>
       <UpcomingEvent title={content.event.title} timeLabel={content.event.timeLabel} pastor={content.event.pastor} address={content.event.address} date={content.event.date} image={content.event.image} />
     </Reveal>
+    {/* View all link moved below featured event */}
+    <Reveal delay={120}>
+      <div className="max-w-7xl mx-auto px-6 mt-4">
+        <div className="flex items-center justify-end">
+          <Link to="/su-kien" className="text-sm text-primary">Xem tất cả</Link>
+        </div>
+      </div>
+    </Reveal>
   </section>
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
     <Reveal delay={150}>
       <PapalQuotes quotes={content.quotes} />
     </Reveal>
   </section>
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
     <Reveal delay={200}>
       <SermonsList />
     </Reveal>
   </section>
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
     <Reveal delay={250}>
       <BlogList />
     </Reveal>
   </section>
-  <section className="py-12 md:py-16">
+  <section className="py-6 md:py-8">
     <Reveal delay={300}>
       <RecentPhotos showViewAll={true} />
     </Reveal>

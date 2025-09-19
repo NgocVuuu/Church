@@ -1,103 +1,156 @@
 import { useEffect, useMemo, useState } from 'react'
+import { apiUrl } from '../lib/apiBase'
 
-const KEY = 'parish_gallery_v1'
-
-// item: { id, url, event: string, date: 'YYYY-MM-DD' | '', uploadedAt: number }
+// Server-backed gallery
+// item: { id, url, event: string, date: 'YYYY-MM-DD' | '', uploadedAt: string }
 export function useGallery() {
-  const [items, setItems] = useState([])
-  const [eventsMeta, setEventsMeta] = useState({}) // { [eventName]: { date: 'YYYY-MM-DD', coverUrl: string } }
+  const [groups, setGroups] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  useEffect(() => {
+  const token = (() => { try { return localStorage.getItem('auth_token') } catch { return null } })()
+
+  const fetchGroups = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const raw = localStorage.getItem(KEY)
-      if (raw) {
-        const data = JSON.parse(raw)
-        let loadedItems = []
-        let loadedMeta = {}
-        if (Array.isArray(data)) {
-          loadedItems = data
-        } else if (data && typeof data === 'object') {
-          loadedItems = Array.isArray(data.items) ? data.items : []
-          loadedMeta = data.eventsMeta && typeof data.eventsMeta === 'object' ? data.eventsMeta : {}
+      const res = await fetch(apiUrl('/gallery/groups'))
+      const data = await res.json()
+      setGroups(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setError(e?.message || 'Load failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchGroups() }, [])
+
+  const addItem = async ({ url, event = '', date = '' }) => {
+    try {
+      let res = await fetch(apiUrl('/gallery/groups/items'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ url, title: event || '', date })
+      })
+      if (!res.ok) {
+        // Fallback for older server: use legacy /gallery/items which mirrors to groups
+        if (res.status === 404 || res.status === 405) {
+          res = await fetch(apiUrl('/gallery/items'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ url, event: event || '', date })
+          })
         }
-        let changed = false
-        loadedItems = loadedItems.map((it, i) => {
-          const next = { ...it }
-          if (typeof next.uploadedAt !== 'number') { next.uploadedAt = Date.now() - i; changed = true }
-          // legacy isCover is ignored in favor of eventsMeta.coverUrl
-          return next
-        })
-        if (changed || !Array.isArray(data)) {
-          try { localStorage.setItem(KEY, JSON.stringify({ items: loadedItems, eventsMeta: loadedMeta })) } catch {}
-        }
-        setItems(loadedItems)
-        setEventsMeta(loadedMeta)
       }
-    } catch {}
-  }, [])
-
-  const persist = (nextItems, nextMeta) => {
-    try { localStorage.setItem(KEY, JSON.stringify({ items: nextItems, eventsMeta: nextMeta })) } catch {}
+      if (!res.ok) throw new Error('Create failed')
+      await fetchGroups()
+    } catch (e) {
+      console.error(e)
+    }
   }
 
-  const save = (updater) => {
-    setItems(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater
-      persist(next, eventsMeta)
-      return next
-    })
+  const removeItem = async (id) => {
+    try {
+      // id is synthetic: `${title}||${url}`
+      const [title, url] = id.split('||')
+      const res = await fetch(apiUrl('/gallery/groups/items'), {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ title, url })
+      })
+      if (!res.ok) throw new Error('Delete failed')
+      await fetchGroups()
+    } catch (e) {
+      console.error(e)
+    }
   }
 
-  const saveMeta = (updater) => {
-    setEventsMeta(prev => {
-      const nextMeta = typeof updater === 'function' ? updater(prev) : updater
-      persist(items, nextMeta)
-      return nextMeta
-    })
+  const deleteGroup = async (title) => {
+    try {
+      const res = await fetch(apiUrl(`/gallery/groups/${encodeURIComponent(title)}`), {
+        method: 'DELETE',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      })
+      if (!res.ok) throw new Error('Delete group failed')
+      await fetchGroups()
+    } catch (e) {
+      console.error(e)
+    }
   }
 
-  const addItem = ({ url, event = '', date = '' }) => {
-    const id = Date.now().toString() + Math.random().toString(36).slice(2)
-    const uploadedAt = Date.now()
-    save(prev => [{ id, url, event, date, uploadedAt }, ...prev])
+  const save = async (updater) => {
+    // For bulk delete via AdminGallery (synthetic ids)
+    const prev = itemsFromGroups(groups)
+    const next = typeof updater === 'function' ? updater(prev) : updater
+    const prevIds = new Set(prev.map(i => i.id))
+    const nextIds = new Set(next.map(i => i.id))
+    const removed = [...prevIds].filter(id => !nextIds.has(id))
+    for (const id of removed) { await removeItem(id) }
+    await fetchGroups()
   }
 
-  const removeItem = (id) => save(prev => prev.filter(i => i.id !== id))
+  const updateItem = async (_id, _patch) => { /* Not implemented (no per-item fields to patch now) */ }
 
-  const updateItem = (id, patch) => save(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i))
+  const renameEvent = async (oldName, newName) => {
+    try {
+      const res = await fetch(apiUrl('/gallery/events/rename'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ oldName, newName })
+      })
+      if (!res.ok) throw new Error('Rename failed')
+      await fetchGroups()
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
+  const setGroupDate = async (title, date) => {
+    try {
+      const res = await fetch(apiUrl('/gallery/events/set-date'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ event: title, date })
+      })
+      if (!res.ok) throw new Error('Set date failed')
+      await fetchGroups()
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const items = useMemo(() => itemsFromGroups(groups), [groups])
   const sorted = useMemo(() => {
     const ts = (it) => {
       if (it.date) {
         const t = Date.parse(it.date)
         if (Number.isFinite(t)) return t
       }
-      return it.uploadedAt || 0
+      return it.uploadedAt ? Date.parse(it.uploadedAt) : 0
     }
     return [...items].sort((a, b) => ts(b) - ts(a))
   }, [items])
 
-  const setEventMeta = (eventName, patch) => {
-    const key = (eventName || '').trim() || 'Sự kiện'
-    saveMeta(prev => ({ ...prev, [key]: { ...(prev[key] || {}), ...patch } }))
-  }
+  // Back-compat: no eventsMeta on server; keep an empty object
+  const eventsMeta = {}
+  const setEventMeta = () => {}
 
-  const renameEvent = (oldName, newName) => {
-    const src = (oldName || '').trim() || 'Sự kiện'
-    const dst = (newName || '').trim() || 'Sự kiện'
-    if (src === dst) return
-    // move meta key
-    saveMeta(prev => {
-      const next = { ...prev }
-      if (next[src]) {
-        next[dst] = { ...(next[dst] || {}), ...next[src] }
-        delete next[src]
-      }
-      return next
-    })
-    // update items' event name
-    save(prev => prev.map(i => ((i.event || '').trim() || 'Sự kiện') === src ? { ...i, event: dst } : i))
-  }
+  return { items, groups, sorted, addItem, removeItem, deleteGroup, updateItem, save, renameEvent, setGroupDate, eventsMeta, loading, error }
+}
 
-  return { items, eventsMeta, sorted, addItem, removeItem, updateItem, save, setEventMeta, renameEvent }
+function itemsFromGroups(groups) {
+  const out = []
+  for (const g of (groups||[])) {
+    for (const p of (g.photos||[])) {
+      out.push({
+        id: `${g.title}||${p.url}`,
+        url: p.url,
+        event: g.title,
+        date: p.date || '',
+        uploadedAt: p.uploadedAt || null,
+      })
+    }
+  }
+  return out
 }
