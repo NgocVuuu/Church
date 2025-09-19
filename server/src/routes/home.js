@@ -6,7 +6,13 @@ import { validateHomeContent } from '../middleware/validation.js'
 
 const router = Router()
 
-const CREATE_DEFAULTS_ON_GET = process.env.CREATE_DEFAULTS_ON_GET === '1'
+// Auto-create default Home content when empty.
+// Behavior:
+// - If CREATE_DEFAULTS_ON_GET=1 -> always create when empty
+// - If CREATE_DEFAULTS_ON_GET=0 -> never create
+// - If not set -> create in production by default (helps first deploys)
+const _flag = (process.env.CREATE_DEFAULTS_ON_GET ?? '').trim()
+const CREATE_DEFAULTS_ON_GET = _flag === '1' || (_flag === '' && process.env.NODE_ENV === 'production')
 
 // Get home content
 router.get('/', async (req, res) => {

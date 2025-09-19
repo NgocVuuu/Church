@@ -65,10 +65,20 @@ const authLimiter = rateLimit({
 });
 
 // CORS configuration - allow multiple origins via env and common hosting patterns (Vite dev + Cloudflare Pages)
+// Normalize client URLs: allow bare hostnames like 'example.pages.dev'
 const clientUrls = (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:5174')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean)
+  .map(origin => {
+    // Already a full origin
+    if (/^https?:\/\//i.test(origin)) return origin
+    // localhost shorthand like localhost:5173
+    if (/^localhost:\d+$/i.test(origin)) return `http://${origin}`
+    // Bare hostname -> assume https in production, http otherwise
+    const proto = (process.env.NODE_ENV === 'production') ? 'https' : 'http'
+    return `${proto}://${origin}`
+  })
 
 // Optional regex patterns from env (comma-separated). Useful for *.pages.dev, custom domains, etc.
 const originRegexes = (process.env.CLIENT_ORIGIN_REGEXES || '')
@@ -90,7 +100,7 @@ app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true) // non-browser or same-origin/proxy
     // Allow any localhost:517x for Vite dev convenience
-    let ok = clientUrls.includes(origin) || /http:\/\/localhost:517\d$/.test(origin)
+  let ok = clientUrls.includes(origin) || /http:\/\/localhost:517\d$/.test(origin)
     if (!ok) {
       ok = [...defaultOriginRegexes, ...originRegexes].some(rx => rx.test(origin))
     }
