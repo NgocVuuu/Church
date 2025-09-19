@@ -20,6 +20,8 @@ import galleryRouter from './routes/gallery.js';
 dotenv.config();
 
 const app = express();
+// Trust proxy headers when behind platforms like Render and Cloudflare
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet({
@@ -62,21 +64,40 @@ const authLimiter = rateLimit({
   }
 });
 
-// CORS configuration - allow multiple dev origins via env CLIENT_URL or CLIENT_URLS
+// CORS configuration - allow multiple origins via env and common hosting patterns (Vite dev + Cloudflare Pages)
 const clientUrls = (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:5174')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean)
 
+// Optional regex patterns from env (comma-separated). Useful for *.pages.dev, custom domains, etc.
+const originRegexes = (process.env.CLIENT_ORIGIN_REGEXES || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+  .map(rx => {
+    try { return new RegExp(rx) } catch { return null }
+  })
+  .filter(Boolean)
+
+// Built-in defaults for Cloudflare Pages and Workers preview domains
+const defaultOriginRegexes = [
+  /https:\/\/[a-z0-9-]+\.pages\.dev$/i,
+  /https:\/\/[a-z0-9-]+\.workers\.dev$/i,
+]
+
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true) // non-browser or same-origin/proxy
-    // Allow any localhost:517x for vite dev convenience
-    const ok = clientUrls.includes(origin) || /http:\/\/localhost:517\d$/.test(origin)
+    // Allow any localhost:517x for Vite dev convenience
+    let ok = clientUrls.includes(origin) || /http:\/\/localhost:517\d$/.test(origin)
+    if (!ok) {
+      ok = [...defaultOriginRegexes, ...originRegexes].some(rx => rx.test(origin))
+    }
     cb(null, ok)
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
