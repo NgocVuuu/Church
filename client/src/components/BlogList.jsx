@@ -23,20 +23,19 @@ export default function BlogList({ items }) {
           <div className="uppercase tracking-[0.35em] text-neutral-500 text-xs">Bài viết</div>
           <h3 className="font-display text-3xl mt-3">Tin & bài viết mới</h3>
         </div>
-        {/* Mobile grid: 2 per row */}
-        <div className="md:hidden">
-          <div className="grid grid-cols-2 gap-3">
+        {/* Mobile slider */}
+        <div className="md:hidden -mx-6">
+          <div className="px-6 flex gap-4 overflow-x-auto pb-2 no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
             {list.map((b) => (
-              <article key={b.id} className="border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col">
-                <div className="relative h-24 sm:h-28">
+              <article key={b.id} className="flex-none w-72 border rounded-lg overflow-hidden bg-white shadow-sm h-full flex flex-col" style={{ scrollSnapAlign: 'start' }}>
+                <div className="relative h-40">
                   <img src={b.image} alt={b.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy"/>
                 </div>
-                <div className="p-3 flex-1 flex flex-col min-h-0 gap-1.5">
-                  <h4 className="font-display text-sm clamp-2 leading-snug">{b.title}</h4>
-                  <div className="text-[11px] text-neutral-600 clamp-2">
-                    {b.date} · bởi <span className="font-medium">{b.author}</span>
-                  </div>
-                  <Link to={`/bai-viet/${b.slug || b.id}`} className="inline-flex items-center text-primary font-medium hover:underline mt-auto text-xs">Đọc thêm →</Link>
+                <div className="p-4 flex-1 flex flex-col min-h-0 gap-2">
+                  <h4 className="font-display text-lg clamp-2">{b.title}</h4>
+                  <div className="text-sm text-neutral-600">{b.date} · bởi <span className="font-medium">{b.author}</span></div>
+                    <div className="text-sm text-neutral-600">{b.date} · bởi <span className="font-medium">{b.author}</span> · {typeof b.views === 'number' ? `${b.views} lượt đọc` : null}</div>
+                  <Link to={`/bai-viet/${b.slug || b.id}`} className="inline-flex items-center text-primary font-medium hover:underline mt-auto">Đọc thêm →</Link>
                 </div>
               </article>
             ))}

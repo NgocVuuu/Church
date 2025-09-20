@@ -56,17 +56,17 @@ export default function Sermons() {
           </div>
         </Reveal>
 
-        <div className="mt-6 grid md:grid-cols-3 gap-6">
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-6">
           {filtered.map((s, idx) => (
             <Reveal key={s.id} delay={idx * 60}>
               <Link to={`/bai-giang/${s.slug || s.id}`} className="h-full border rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-                <div className="h-40 bg-neutral-100">
+                <div className="h-24 sm:h-28 md:h-40 bg-neutral-100">
                   {s.image ? <img src={s.image} alt={s.title} className="w-full h-full object-cover" loading="lazy"/> : null}
                 </div>
-                <div className="p-5 flex flex-col flex-1 min-h-0 gap-2">
-                  <div className="text-xs uppercase tracking-widest text-neutral-500">{s.date} • {s.pastor || s.preacher}</div>
-                  <h3 className="font-display text-xl mt-2 clamp-2">{s.title}</h3>
-                  <p className="text-neutral-600 text-sm mt-auto">Nghe/đọc bài giảng →</p>
+                <div className="p-3 md:p-5 flex flex-col flex-1 min-h-0 gap-2">
+                  <div className="text-[11px] md:text-xs uppercase tracking-widest text-neutral-500">{s.date}  {s.pastor || s.preacher}</div>
+                  <h3 className="font-display text-sm md:text-xl mt-1 md:mt-2 clamp-2 leading-snug">{s.title}</h3>
+                  <p className="text-neutral-600 text-xs md:text-sm mt-auto">Nghe/đọc bài giảng →</p>
                 </div>
               </Link>
             </Reveal>

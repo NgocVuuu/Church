@@ -56,17 +56,17 @@ export default function Blog() {
           </div>
         </Reveal>
 
-        <div className="mt-6 grid md:grid-cols-3 gap-6">
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-6">
           {filtered.map((p, idx) => (
             <Reveal key={p.id} delay={idx * 60}>
               <Link to={`/bai-viet/${p.slug}`} className="h-full border rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-                <div className="h-40 bg-neutral-100">
+                <div className="h-24 sm:h-28 md:h-40 bg-neutral-100">
                   {p.image ? <img src={p.image} alt={p.title} className="w-full h-full object-cover" loading="lazy"/> : null}
                 </div>
-                <div className="p-5 flex flex-col flex-1 min-h-0">
-                  <div className="text-xs uppercase tracking-widest text-neutral-500">{p.date} • {p.author}</div>
-                  <h3 className="font-display text-xl mt-2 clamp-2">{p.title}</h3>
-                  <p className="mt-2 text-neutral-600 text-sm clamp-3">{p.content?.slice(0, 160)}...</p>
+                <div className="p-3 md:p-5 flex flex-col flex-1 min-h-0">
+                  <div className="text-[11px] md:text-xs uppercase tracking-widest text-neutral-500">{p.date}  {p.author}</div>
+                  <h3 className="font-display text-sm md:text-xl mt-1 md:mt-2 clamp-2 leading-snug">{p.title}</h3>
+                  <p className="mt-1 md:mt-2 text-neutral-600 text-xs md:text-sm clamp-3">{p.content?.slice(0, 120)}...</p>
                 </div>
               </Link>
             </Reveal>
