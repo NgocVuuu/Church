@@ -126,15 +126,31 @@ router.put('/', auth, adminOnly, validateHomeContent, async (req, res) => {
     } else {
       content = await Home.findOneAndUpdate({}, req.body, { new: true })
     }
-    // Mirror events[] into standalone Event collection
-    const list = Array.isArray(content.events) ? content.events : []
-    for (const ev of list) {
-      const title = (ev.title || '').trim()
+    // Mirror featured `event` and `events[]` into standalone Event collection
+    const combine = []
+    if (content.event && (content.event.title || '').trim()) combine.push(content.event)
+    if (Array.isArray(content.events)) combine.push(...content.events)
+    // De-duplicate by title+date signature
+    const seen = new Set()
+    for (const ev of combine) {
+      const title = (ev?.title || '').trim()
       if (!title) continue
-      const sigDate = (ev.date || '').slice(0, 10)
+      const rawDate = (ev?.date || '').toString()
+      const sigDate = rawDate.slice(0, 10) // YYYY-MM-DD when ISO
+      const key = `${title}__${sigDate}`
+      if (seen.has(key)) continue
+      seen.add(key)
       await Event.updateOne(
         { title, date: sigDate },
-        { $set: { timeLabel: ev.timeLabel||'', pastor: ev.pastor||'', address: ev.address||'', image: ev.image||'' } },
+        {
+          $set: {
+            timeLabel: ev.timeLabel || '',
+            pastor: ev.pastor || '',
+            address: ev.address || '',
+            image: ev.image || ''
+          },
+          $setOnInsert: { title, date: sigDate }
+        },
         { upsert: true }
       )
     }
