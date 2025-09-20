@@ -48,7 +48,7 @@ export default function Home() {
       <Navbar />
       <section
         id="home"
-        className="relative min-h-[70vh] md:min-h-screen flex items-center justify-center text-center select-none"
+        className="relative min-h-[35vh] sm:min-h-[45vh] md:min-h-[70vh] flex items-center justify-center text-center select-none"
         onMouseDown={(e) => onDown(e.clientX)}
         onMouseMove={(e) => onMove(e.clientX)}
         onMouseUp={onUp}
@@ -67,35 +67,35 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/60" />
         </div>
 
-        <div className="relative z-10 max-w-4xl mx-auto px-6 mt-24">
+  <div className="relative z-10 max-w-4xl mx-auto px-6 mt-16 md:mt-24">
           {/* Decorative centered heading */}
-          <div className="flex items-center justify-center gap-4 mb-5">
+          <div className="flex items-center justify-center gap-3 mb-3 md:mb-5">
             <span className="hidden sm:block h-px w-24 bg-white/70" />
-            <div className="uppercase tracking-[0.5em] text-white/80 text-xs sm:text-sm">
+            <div className="uppercase tracking-[0.35em] text-white/80 text-[10px] sm:text-xs">
               GIÁO XỨ ĐÔNG VINH
             </div>
             <span className="hidden sm:block h-px w-24 bg-white/70" />
           </div>
 
           {/* Title */}
-          <h1 key={active?.titleEm || 'no-title'} className="font-display text-3xl sm:text-4xl md:text-5xl leading-tight animate-fadeUp">
+          <h1 key={active?.titleEm || 'no-title'} className="font-display text-2xl sm:text-3xl md:text-5xl leading-tight animate-fadeUp">
             <span className="text-white/90">{active?.titlePre} </span>
             <span className="text-primary">{active?.titleEm}</span>
             <span className="text-white/90">{active?.titlePost}</span>
           </h1>
 
           {/* Description */}
-          <p className="mt-4 text-base sm:text-lg text-white/85 font-sans max-w-2xl mx-auto animate-fadeUp delay-150">
+          <p className="mt-2 md:mt-4 text-sm sm:text-base text-white/85 font-sans max-w-2xl mx-auto animate-fadeUp delay-150">
             {active?.desc}
           </p>
 
           {/* CTAs */}
-          <div className="mt-8 flex items-center justify-center gap-3 animate-fadeUp delay-200">
-            <Link to="/bai-viet/luoc-su-hinh-thanh-giao-xu-dong-vinh" className="border border-primary text-primary px-5 py-2.5 rounded-full hover:bg-primary/10 text-sm">Đọc thêm</Link>
+          <div className="mt-4 md:mt-8 flex items-center justify-center gap-3 animate-fadeUp delay-200">
+            <Link to="/bai-viet/luoc-su-hinh-thanh-giao-xu-dong-vinh" className="border border-primary text-primary px-4 md:px-5 py-2 rounded-full hover:bg-primary/10 text-xs md:text-sm">Đọc thêm</Link>
           </div>
 
           {/* Dots */}
-          <div className="mt-10 flex items-center justify-center gap-2">
+          <div className="mt-6 md:mt-10 flex items-center justify-center gap-2">
             {slides.map((s, i) => (
               <button
                 key={s.img}

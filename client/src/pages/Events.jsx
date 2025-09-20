@@ -17,7 +17,7 @@ export default function EventsPage() {
       <PageBanner title="Sự kiện" subtitle="Danh sách sự kiện sắp tới" />
       <section className="py-10">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3">
             {upcoming.map((e, idx) => (
               <Reveal key={idx}>
                 <div className="relative grid md:grid-cols-2 gap-0 items-stretch">

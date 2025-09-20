@@ -50,7 +50,7 @@ export default function SermonsList({ items }) {
         </div>
 
         {/* Desktop grid */}
-        <div className="hidden md:grid md:grid-cols-3 gap-6">
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {list.map((s) => (
             <article key={s.id} className="border rounded-lg overflow-hidden bg-white shadow-sm h-full flex flex-col">
               <div className="relative h-44">

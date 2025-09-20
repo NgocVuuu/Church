@@ -15,7 +15,7 @@ export default function About() {
   <PageBanner pageKey="about" title="Giới thiệu giáo xứ" subtitle="Thông tin tổng quan và sứ mạng" vAlign="center" focus="center" />
 
   <section className="py-6 md:py-8">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-6">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-3 gap-3 md:gap-6">
           {[{
             label:'Giáo dân', value:`~ ${about.stats.parishioners}`, note:'Số giáo dân sinh hoạt thường xuyên'
           },{
@@ -24,10 +24,10 @@ export default function About() {
             label:'Giáo họ/giáo khu', value:about.stats.zones, note:'Tổ chức sinh hoạt theo giáo khu'
           }].map((it, idx)=> (
             <Reveal key={it.label} delay={idx*80}>
-              <div className="rounded-lg bg-neutral-50 p-6 border">
-                <div className="text-neutral-500 uppercase text-xs tracking-widest">{it.label}</div>
-                <div className="mt-2 font-display text-3xl">{it.value}</div>
-                <p className="mt-1 text-neutral-600 text-sm">{it.note}</p>
+              <div className="rounded-lg bg-neutral-50 p-3 md:p-6 border">
+                <div className="text-neutral-500 uppercase text-[10px] md:text-xs tracking-widest">{it.label}</div>
+                <div className="mt-1 md:mt-2 font-display text-xl md:text-3xl">{it.value}</div>
+                <p className="mt-1 text-neutral-600 text-xs md:text-sm">{it.note}</p>
               </div>
             </Reveal>
           ))}
@@ -51,12 +51,12 @@ export default function About() {
 
                 {/* Highlights (dynamic) */}
                 {about.highlights?.length > 0 && (
-                  <div className="mt-6 grid sm:grid-cols-3 gap-4">
+                  <div className="mt-6 grid grid-cols-3 gap-2 md:gap-4">
                     {about.highlights.slice(0,3).map((h, i) => (
                       <Reveal key={i} delay={i*70}>
-                        <div className="rounded-lg border p-4 bg-neutral-50">
-                          <div className="text-xs uppercase tracking-widest text-neutral-500">{h.tag}</div>
-                          <div className="font-display text-xl mt-1">{h.title}</div>
+                        <div className="rounded-lg border p-3 md:p-4 bg-neutral-50">
+                          <div className="text-[10px] md:text-xs uppercase tracking-widest text-neutral-500">{h.tag}</div>
+                          <div className="font-display text-base md:text-xl mt-1">{h.title}</div>
                         </div>
                       </Reveal>
                     ))}
@@ -80,7 +80,7 @@ export default function About() {
                       title="Bản đồ đến giáo xứ"
                       src={content.mapEmbedUrl}
                       width="100%"
-                      height="280"
+                      height="240"
                       style={{ border: 0 }}
                       allowFullScreen=""
                       loading="lazy"

@@ -179,7 +179,7 @@ export default function AdminPosts() {
             <thead>
               <tr className="text-left border-b">
                 <th className="py-2 pr-3">Ảnh</th>
-                <th className="py-2 pr-3">Tiêu đề</th>
+                <th className="py-2 pr-3 w-1/2">Tiêu đề</th>
                 <th className="py-2 pr-3">Tác giả</th>
                 <th className="py-2 pr-3">Ngày</th>
                 <th className="py-2 pr-3">Hành động</th>
@@ -193,7 +193,7 @@ export default function AdminPosts() {
                   </td>
                   <td className="py-2 pr-3 w-full">
                     <div>
-                      <div className="font-medium">{p.title}</div>
+                      <div className="font-medium text-sm md:text-base line-clamp-2">{p.title}</div>
                       <div className="text-neutral-500 line-clamp-2 text-xs whitespace-pre-line">{p.content}</div>
                     </div>
                   </td>

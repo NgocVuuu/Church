@@ -16,14 +16,12 @@ export default function Navbar() {
   }, [])
 
   const isHome = location.pathname === '/'
-  const effectiveScrolled = scrolled || !isHome
+  // Mobile requirement: always white, compact; keep shadow on scroll
+  const effectiveScrolled = true
   const [open, setOpen] = useState(false)
 
   const linkCls = (active) =>
-    `uppercase tracking-widest text-xs transition-colors ${
-      effectiveScrolled ? (active ? 'text-primary' : 'text-neutral-700 hover:text-primary')
-                        : (active ? 'text-primary' : 'text-white/90 hover:text-primary')
-    }`
+    `uppercase tracking-widest text-xs transition-colors ${active ? 'text-primary' : 'text-neutral-700 hover:text-primary'}`
 
   // Lock scroll when menu open and close on route change
   useEffect(() => {
@@ -33,13 +31,14 @@ export default function Navbar() {
   useEffect(() => { setOpen(false) }, [location.pathname, location.search])
 
   return (
-    <header className={`${effectiveScrolled ? 'sticky top-0 bg-white/95 shadow-sm border-b border-neutral-100' : 'absolute'} top-0 inset-x-0 z-20 backdrop-blur ${!effectiveScrolled ? 'bg-black/30 md:bg-transparent' : ''}` }>
+    <header className={`sticky top-0 bg-white shadow-sm border-b border-neutral-100 inset-x-0 z-20`}>
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2 group">
           <span className={`text-primary`}>
             <CrossIcon className="w-7 h-7" />
           </span>
-          <span className={`font-script text-3xl transition-colors ${effectiveScrolled ? 'text-neutral-800' : 'text-white'} group-hover:text-primary`}>Gx.Đông Vinh</span>
+          {/* Compact brand: show text from sm+ */}
+          <span className={`hidden sm:inline font-script text-2xl md:text-3xl transition-colors text-neutral-800 group-hover:text-primary`}>Gx.Đông Vinh</span>
         </Link>
         <nav className="hidden md:flex items-center space-x-5">
           <NavLink to="/" className={({isActive}) => linkCls(isActive)}>Trang chủ</NavLink>
@@ -53,7 +52,7 @@ export default function Navbar() {
         {/* Mobile hamburger */}
         <button
           aria-label="Mở menu"
-          className={`md:hidden inline-flex items-center justify-center w-10 h-10 rounded ${effectiveScrolled ? 'text-neutral-800 hover:bg-neutral-100' : 'text-white hover:bg-white/10'} transition`}
+          className={`md:hidden inline-flex items-center justify-center w-10 h-10 rounded text-neutral-800 hover:bg-neutral-100 transition`}
           onClick={() => setOpen(true)}
         >
           ☰

@@ -232,7 +232,7 @@ export default function AdminGallery() {
                         >{g.items.every(x => selectedIds.has(x.id)) ? 'Bỏ chọn nhóm' : 'Chọn nhóm'}</button>
                       </div>
                     </div>
-                    <div className="mt-3 grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                       {g.items
                         .slice()
                         .sort((a,b)=>{

@@ -47,19 +47,19 @@ export default function Gallery() {
     <div className="bg-white min-h-screen">
       <Navbar />
       <PageBanner pageKey="gallery" title="Thư viện ảnh" subtitle="Xem lại khoảnh khắc của cộng đoàn" vAlign="center" focus="center" />
-      <div className="max-w-7xl mx-auto px-6 py-12 md:py-16">
+      <div className="max-w-7xl mx-auto px-6 py-8 md:py-16">
         <Reveal>
-          <div className="mt-6 grid md:grid-cols-4 gap-3">
-            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Tìm theo tên sự kiện..." className="border rounded px-3 py-2" />
+          <div className="mt-4 grid sm:grid-cols-2 md:grid-cols-4 gap-2">
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Tìm sự kiện..." className="border rounded px-3 py-2 text-sm" />
             <div className="flex items-center gap-2">
-              <label className="text-sm text-neutral-600 w-10">Từ</label>
-              <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className="border rounded px-3 py-2 flex-1" />
+              <label className="text-xs text-neutral-600 w-10">Từ</label>
+              <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className="border rounded px-2 py-1.5 flex-1 text-sm" />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-neutral-600 w-10">Đến</label>
-              <input type="date" value={to} onChange={e=>setTo(e.target.value)} className="border rounded px-3 py-2 flex-1" />
+              <label className="text-xs text-neutral-600 w-10">Đến</label>
+              <input type="date" value={to} onChange={e=>setTo(e.target.value)} className="border rounded px-2 py-1.5 flex-1 text-sm" />
             </div>
-            <div className="text-sm text-neutral-500 self-center">Tổng: {timelineGroups.length} sự kiện</div>
+            <div className="text-xs md:text-sm text-neutral-500 self-center">Tổng: {timelineGroups.length} sự kiện</div>
           </div>
         </Reveal>
 
@@ -71,15 +71,15 @@ export default function Gallery() {
               <Reveal key={g.id || g.title + idx} delay={idx*80}>
                 <section id={`event-${encodeURIComponent(g.title)}`} className="relative pl-8 scroll-mt-24">
                   <div className="absolute left-1.5 top-1.5 h-3 w-3 rounded-full bg-primary shadow" />
-                  <div className="flex items-baseline gap-3">
-                    <h2 className="font-display text-lg">{g.title}</h2>
-                    <div className="text-xs text-neutral-500">{safeFormat(g.date)}</div>
+                  <div className="flex items-baseline gap-2">
+                    <h2 className="font-display text-base md:text-lg">{g.title}</h2>
+                    <div className="text-[11px] md:text-xs text-neutral-500">{safeFormat(g.date)}</div>
                   </div>
-                  <div className="mt-3 grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="mt-3 grid grid-cols-4 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-2 md:gap-4">
                     {g.photos.map((p, j) => (
                       <Reveal key={p.url + j} delay={j*40}>
-                        <div className="rounded-lg overflow-hidden border bg-white">
-                          <div className="aspect-[4/3] bg-neutral-100">
+                        <div className="rounded-md md:rounded-lg overflow-hidden border bg-white">
+                          <div className="aspect-square sm:aspect-[4/3] bg-neutral-100">
                             <img src={p.url} alt={g.title} className="w-full h-full object-cover" loading="lazy" />
                           </div>
                         </div>

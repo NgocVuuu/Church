@@ -16,11 +16,11 @@ export default function AdminLayout() {
     <div className="bg-white min-h-screen">
       <Navbar />
       <div className="h-4" />
-      <div className="max-w-7xl mx-auto px-6 py-8 grid md:grid-cols-4 gap-6">
-        <aside className="md:col-span-1 border rounded-lg p-4 h-fit">
-          <div className="font-display text-xl mb-3">Quản trị</div>
+      <div className="max-w-7xl mx-auto px-6 py-8 grid gap-6">
+        <aside className="border rounded-lg p-3 md:p-4">
+          <div className="font-display text-lg md:text-xl mb-3">Quản trị</div>
           <div className="text-xs text-neutral-600 mb-3">{user?.email}</div>
-          <nav className="space-y-1 text-sm">
+          <nav className="flex flex-wrap items-center gap-2 text-sm">
             <NavLink to="." end className={linkCls}>Tổng quan</NavLink>
             <NavLink to="home" className={linkCls}>Trang Home</NavLink>
             <NavLink to="bai-viet" className={linkCls}>Bài viết</NavLink>
@@ -30,11 +30,11 @@ export default function AdminLayout() {
             <NavLink to="thu-vien-anh" className={linkCls}>Thư viện ảnh</NavLink>
             <NavLink to="lien-he" className={linkCls}>Liên hệ</NavLink>
           </nav>
-          <div className="mt-4">
+          <div className="mt-3">
             <button onClick={logout} className="text-sm text-red-600">Đăng xuất</button>
           </div>
         </aside>
-        <main className="md:col-span-3">
+        <main>
           <Outlet />
         </main>
       </div>
