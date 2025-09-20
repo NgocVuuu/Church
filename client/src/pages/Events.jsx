@@ -28,7 +28,35 @@ export default function EventsPage() {
                         <img src={e.image} alt={e.title} className="absolute inset-0 w-full h-full object-cover" />
                       ) : null}
                     </div>
-                    <div className="flex-1 h-24 sm:h-28 p-3 flex flex-col min-w-0">
+                    <div className="relative flex-1 h-24 sm:h-28 p-3 pt-6 flex flex-col min-w-0">
+                      {/* Mobile date ribbon (similar style to desktop) */}
+                      <div className="absolute left-0 top-0 w-2/3 z-10 -ml-2">
+                        <div className="relative bg-primary text-black font-medium text-[10px] px-3 py-1 rounded-br shadow">
+                          {(() => {
+                            try {
+                              return e.date ? new Date(e.date).toLocaleDateString('vi-VN') : ''
+                            } catch { return e.date || '' }
+                          })()}
+                          {/* Triangular wedge */}
+                          <span
+                            className="absolute -right-2 top-0 h-0 w-0"
+                            style={{
+                              borderTop: '12px solid transparent',
+                              borderBottom: '12px solid transparent',
+                              borderLeft: '8px solid #f9d342',
+                            }}
+                          />
+                          {/* Bottom notch */}
+                          <span
+                            className="absolute left-0 h-0 w-0"
+                            style={{
+                              top: '100%',
+                              borderTop: '8px solid #f1c937',
+                              borderLeft: '8px solid transparent',
+                            }}
+                          />
+                        </div>
+                      </div>
                       <h3 className="font-display text-sm font-medium clamp-2 leading-snug">{e.title}</h3>
                       {e.timeLabel ? (
                         <div className="text-[11px] text-neutral-600 mt-0.5 clamp-2">{e.timeLabel}</div>
@@ -36,9 +64,8 @@ export default function EventsPage() {
                       {e.address ? (
                         <div className="text-[11px] text-neutral-600 mt-0.5 clamp-2">{e.address}</div>
                       ) : null}
-                      <div className="mt-auto text-[11px] text-neutral-500">
-                        {(() => { try { return e.date ? new Date(e.date).toLocaleDateString('vi-VN') : '' } catch { return e.date || '' } })()}
-                      </div>
+                      {/* Date is shown on ribbon above; keep footer area clean */}
+                      <div className="mt-auto" />
                     </div>
                   </div>
                 </div>
