@@ -4,8 +4,7 @@ import { apiUrl } from '../lib/apiBase'
 
 // Usage:
 // <CloudinaryUpload onUploaded={(url)=>setImageUrl(url)} folder="church"/>
-// Requires env:
-//   VITE_CLOUDINARY_CLOUD
+// No client env required; uses server signature endpoint to obtain cloudName/apiKey/signature.
 export default function CloudinaryUpload({ onUploaded, folder = 'church', multiple = false, label, size = 'md' }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -15,17 +14,16 @@ export default function CloudinaryUpload({ onUploaded, folder = 'church', multip
 
   const uploadOne = async (file) => {
     if (!file) return
-  const cloud = import.meta.env.VITE_CLOUDINARY_CLOUD
-  if (!cloud) { setError('Thiếu cấu hình Cloudinary: VITE_CLOUDINARY_CLOUD'); return }
     setError('')
     try {
       const form = new FormData()
       form.append('file', file)
-  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloud}/image/upload`
-      // Lấy chữ ký từ server để upload signed
-  const sigRes = await fetch(apiUrl('/cloudinary/signature'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder }) })
+      // Lấy chữ ký từ server để upload signed (đồng thời nhận cloudName & apiKey)
+      const sigRes = await fetch(apiUrl('/cloudinary/signature'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder }) })
       if (!sigRes.ok) throw new Error('Không lấy được chữ ký từ server')
-      const { timestamp, folder: f, signature, apiKey } = await sigRes.json()
+      const { timestamp, folder: f, signature, apiKey, cloudName } = await sigRes.json()
+      if (!cloudName || !apiKey || !signature) throw new Error('Thiếu thông tin ký Cloudinary (cloudName/apiKey/signature)')
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
       form.append('timestamp', timestamp)
       if (f) form.append('folder', f)
       form.append('api_key', apiKey)

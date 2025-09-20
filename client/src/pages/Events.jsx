@@ -17,10 +17,34 @@ export default function EventsPage() {
       <PageBanner title="Sự kiện" subtitle="Danh sách sự kiện sắp tới" />
       <section className="py-10">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-6">
             {upcoming.map((e, idx) => (
               <Reveal key={idx}>
-                <div className="relative grid md:grid-cols-2 gap-0 items-stretch">
+                {/* Mobile compact card: image left (vertical), white panel right */}
+                <div className="md:hidden">
+                  <div className="flex items-stretch bg-white border border-neutral-200 rounded-lg overflow-hidden">
+                    <div className="w-20 h-24 sm:w-24 sm:h-28 bg-neutral-100 relative shrink-0">
+                      {e.image ? (
+                        <img src={e.image} alt={e.title} className="absolute inset-0 w-full h-full object-cover" />
+                      ) : null}
+                    </div>
+                    <div className="flex-1 h-24 sm:h-28 p-3 flex flex-col min-w-0">
+                      <h3 className="font-display text-sm font-medium clamp-2 leading-snug">{e.title}</h3>
+                      {e.timeLabel ? (
+                        <div className="text-[11px] text-neutral-600 mt-0.5 clamp-2">{e.timeLabel}</div>
+                      ) : null}
+                      {e.address ? (
+                        <div className="text-[11px] text-neutral-600 mt-0.5 clamp-2">{e.address}</div>
+                      ) : null}
+                      <div className="mt-auto text-[11px] text-neutral-500">
+                        {(() => { try { return e.date ? new Date(e.date).toLocaleDateString('vi-VN') : '' } catch { return e.date || '' } })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop/tablet original layout */}
+                <div className="hidden md:grid md:grid-cols-2 gap-0 items-stretch">
                   {/* Left: Image (fills half) */}
                   <div className="relative">
                     {e.image ? (

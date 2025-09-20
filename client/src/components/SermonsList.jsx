@@ -23,26 +23,20 @@ export default function SermonsList({ items }) {
           <div className="uppercase tracking-[0.35em] text-neutral-500 text-xs">Bài giảng</div>
           <h3 className="font-display text-3xl mt-3">3 bài giảng mới nhất</h3>
         </div>
-        {/* Mobile slider */}
-        <div className="md:hidden -mx-6">
-          <div
-            className="px-6 flex gap-4 overflow-x-auto pb-2 no-scrollbar"
-            style={{ scrollSnapType: 'x mandatory' }}
-          >
+        {/* Mobile grid: 2 per row */}
+        <div className="md:hidden">
+          <div className="grid grid-cols-2 gap-3">
             {list.map((s) => (
-              <article
-                key={s.id}
-                className="flex-none w-72 border rounded-lg overflow-hidden bg-white shadow-sm h-full flex flex-col"
-                style={{ scrollSnapAlign: 'start' }}
-              >
-                <div className="relative h-40">
+              <article key={s.id} className="border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col">
+                <div className="relative h-24 sm:h-28">
                   <img src={s.image} alt={s.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy"/>
                 </div>
-                <div className="p-4 flex-1 flex flex-col min-h-0 gap-2">
-                  <h4 className="font-display text-lg clamp-2">{s.title}</h4>
-                  <div className="text-sm text-neutral-600">{s.date} · bởi <span className="font-medium">{s.pastor}</span></div>
-                    <div className="text-sm text-neutral-600">{s.date} · bởi <span className="font-medium">{s.pastor}</span> · {typeof s.views === 'number' ? `${s.views} lượt đọc` : null}</div>
-                  <Link to={`/bai-giang/${s.slug || s.id}`} className="inline-flex items-center text-primary font-medium hover:underline mt-auto">Nghe bài giảng →</Link>
+                <div className="p-3 flex-1 flex flex-col min-h-0 gap-1.5">
+                  <h4 className="font-display text-sm clamp-2 leading-snug">{s.title}</h4>
+                  <div className="text-[11px] text-neutral-600 clamp-2">
+                    {s.date} · bởi <span className="font-medium">{s.pastor}</span>
+                  </div>
+                  <Link to={`/bai-giang/${s.slug || s.id}`} className="inline-flex items-center text-primary font-medium hover:underline mt-auto text-xs">Nghe bài giảng →</Link>
                 </div>
               </article>
             ))}
