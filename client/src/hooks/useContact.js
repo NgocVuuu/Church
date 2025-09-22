@@ -77,7 +77,7 @@ export function useContactContent() {
     const sanitized = { ...next, phone: (next?.phone || '').replace(/\s+/g, '') }
     const n = normalize(sanitized)
     const token = getAuthToken()
-    if (token) {
+  if (token) {
       const res = await fetch(apiUrl('/contact'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -96,11 +96,8 @@ export function useContactContent() {
       try { window.dispatchEvent(new CustomEvent('contactContentUpdated')) } catch {}
       return merged
     }
-    // If not logged in, we still allow local draft save for convenience
-    setContent(n)
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(n)) } catch {}
-    try { window.dispatchEvent(new CustomEvent('contactContentUpdated')) } catch {}
-    return n
+    // No token: do not save silently; require admin login
+    throw new Error('Cần đăng nhập (Admin) để lưu nội dung lên máy chủ')
   }
 
   return { content, save, loading, error }

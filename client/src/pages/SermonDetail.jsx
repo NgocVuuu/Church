@@ -9,13 +9,14 @@ import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import Reveal from '../components/Reveal'
 import { useEffect, useMemo, useRef } from 'react'
 import { dlog } from '../lib/debug'
+import TtsQuickVoice from '../components/TtsQuickVoice'
 
 export default function SermonDetail() {
   const { id } = useParams()
   const { sermons, getSermonBySlug, fetchSermonBySlug } = useSermons()
   const { posts } = usePosts()
   const sermon = getSermonBySlug(id) || sermons.find(s => s.id === id) || sermons[0]
-  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop, voices, preferredVoiceKey, voiceKey } = useTextToSpeech()
+  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop, voices, preferredVoiceKey, setPreferredVoiceKey, voiceKey } = useTextToSpeech()
 
   // Dừng đọc khi unmount hoặc đổi bài giảng (id)
   const cleanupGuardRef = useRef(false)
@@ -100,7 +101,7 @@ export default function SermonDetail() {
       if (joined) {
         const preferred = (voices || []).find(v => voiceKey(v) === preferredVoiceKey)
         // dùng speakSmart để xử lý chunk và fallback tốt hơn (buộc giọng tiếng Việt)
-        speakSmart(joined, { lang: 'vi-VN', pauseMs: 450, voice: preferred })
+  speakSmart(joined, { lang: 'vi-VN', pauseMs: 250, rate: 1.05, voice: preferred })
       }
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -185,6 +186,14 @@ export default function SermonDetail() {
                   </button>
                 </>
               )}
+            </div>
+            <div className="mt-2">
+              <TtsQuickVoice
+                voices={voices}
+                preferredVoiceKey={preferredVoiceKey}
+                setPreferredVoiceKey={setPreferredVoiceKey}
+                voiceKey={voiceKey}
+              />
             </div>
             <div className="mt-4 leading-relaxed text-[1.05rem] [text-align:justify] [hyphens:auto]">
               {renderContent(sermon?.content)}

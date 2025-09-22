@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiUrl } from '../lib/apiBase'
 import { useAuth } from '../auth/AuthContext'
+import { useToast } from '../components/Toast'
 
 const STORAGE_KEY = 'parish_banners'
 
 export function useBanner(pageKey) {
   const [banners, setBanners] = useState({})
   const { token } = useAuth?.() || {}
+  const toast = useToast()
   const url = banners?.[pageKey] || ''
 
   // Load from local cache immediately for fast paint
@@ -38,27 +40,51 @@ export function useBanner(pageKey) {
   }, [])
 
   const setBanner = async (key, value) => {
-    // Optimistic local update + cache
-    setBanners(prev => {
-      const next = { ...prev, [key]: value }
+    const prev = banners
+    // Optimistic update
+    setBanners(p => {
+      const next = { ...p, [key]: value }
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch {}
       return next
     })
-    // Persist to API if we have admin token
+    // Require admin token to persist
+    if (!token) {
+      // Revert optimistic update because server will reject without token
+      setBanners(prev)
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prev)) } catch {}
+      const msg = 'Cần đăng nhập (Admin) để lưu banner lên máy chủ'
+      toast?.error?.(msg)
+      throw new Error(msg)
+    }
     try {
-      const headers = { 'Content-Type': 'application/json' }
-      if (token) headers.Authorization = `Bearer ${token}`
       const res = await fetch(apiUrl(`/banners/${encodeURIComponent(key)}`), {
         method: 'PUT',
-        headers,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ url: value })
       })
       if (!res.ok) {
-        // Revert on failure? Keep optimistic but log.
-        // eslint-disable-next-line no-console
-        console.warn('Failed to save banner to server')
+        const data = await res.json().catch(() => ({}))
+        // Revert on failure
+        setBanners(prev)
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prev)) } catch {}
+        const msg = data?.error ? `Lưu banner thất bại: ${data.error}` : 'Lưu banner thất bại'
+        toast?.error?.(msg)
+        throw new Error(msg)
       }
-    } catch {}
+      const saved = await res.json().catch(() => null)
+      if (saved?.url) {
+        toast?.success?.('Đã lưu banner')
+      } else {
+        toast?.success?.('Đã cập nhật banner')
+      }
+    } catch (e) {
+      // Ensure we reverted above on non-ok; here handle network-level failure
+      setBanners(prev)
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prev)) } catch {}
+      const msg = e?.message || 'Không thể lưu banner (mạng?)'
+      toast?.error?.(msg)
+      throw e
+    }
   }
 
   return { url, setBanner }

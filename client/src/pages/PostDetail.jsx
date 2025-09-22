@@ -9,13 +9,14 @@ import { useTextToSpeech } from '../hooks/useTextToSpeech'
 import Reveal from '../components/Reveal'
 import { useEffect, useMemo, useRef } from 'react'
 import { dlog } from '../lib/debug'
+import TtsQuickVoice from '../components/TtsQuickVoice'
 
 export default function PostDetail() {
   const { slug } = useParams()
   const { posts, getPostBySlug, fetchPostBySlug } = usePosts()
   const { sermons } = useSermons()
   const post = getPostBySlug(slug) || posts[0]
-  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop, voices, preferredVoiceKey, voiceKey } = useTextToSpeech()
+  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop, voices, preferredVoiceKey, setPreferredVoiceKey, voiceKey } = useTextToSpeech()
 
   // Dừng đọc khi unmount hoặc đổi bài (slug)
   const cleanupGuardRef = useRef(false)
@@ -96,7 +97,7 @@ export default function PostDetail() {
         // Prefer chunked reading with explicit Vietnamese voice
         // Pass preferred voice if any
         const preferred = (voices || []).find(v => voiceKey(v) === preferredVoiceKey)
-        speakSmart(cleanedText, { lang: 'vi-VN', pauseMs: 450, voice: preferred })
+  speakSmart(cleanedText, { lang: 'vi-VN', pauseMs: 250, rate: 1.05, voice: preferred })
       }
       else dlog('post', 'No cleanedText → button should be disabled')
     } catch (e) {
@@ -188,6 +189,14 @@ export default function PostDetail() {
                   </button>
                 </>
               )}
+            </div>
+            <div className="mt-2">
+              <TtsQuickVoice
+                voices={voices}
+                preferredVoiceKey={preferredVoiceKey}
+                setPreferredVoiceKey={setPreferredVoiceKey}
+                voiceKey={voiceKey}
+              />
             </div>
             <div className="mt-4 leading-relaxed text-[1.05rem] [text-align:justify] [hyphens:auto]">
               {renderContent(post?.content)}
