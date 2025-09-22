@@ -149,12 +149,12 @@ export const validateContactContent = [
     .isLength({ max: 300 })
     .withMessage('Address must be less than 300 characters'),
   body('phone')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .isMobilePhone()
     .withMessage('Must be a valid phone number'),
   body('email')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .isEmail()
     .withMessage('Must be a valid email address'),
