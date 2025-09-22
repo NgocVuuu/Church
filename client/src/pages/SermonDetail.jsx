@@ -137,8 +137,16 @@ export default function SermonDetail() {
   return (
     <div className="bg-white min-h-screen">
       <Navbar />
-  <PageBanner pageKey="sermons" title={sermon?.title || 'Bài giảng'} subtitle="Chi tiết bài giảng" vAlign="bottom" />
-  <div className="max-w-7xl mx-auto px-6 py-12 md:py-16 grid lg:grid-cols-3 gap-10">
+  <PageBanner
+    pageKey="sermons"
+    title={sermon?.title || 'Bài giảng'}
+    subtitle="Chi tiết bài giảng"
+    vAlign="bottom"
+    height="h-64 md:h-72 lg:h-80"
+    padding="pt-28 pb-10 md:py-12"
+    titleClassName="text-lg sm:text-xl md:text-4xl tracking-wider leading-snug"
+  />
+  <div className="max-w-7xl mx-auto px-6 py-12 md:py-16 grid lg:grid-cols-3 gap-10 mt-2 md:mt-0">
         <main className="lg:col-span-2">
           <Reveal>
             {sermon?.image ? <img src={sermon.image} alt={sermon.title} className="w-full h-72 object-cover rounded" loading="lazy"/> : null}
@@ -146,7 +154,7 @@ export default function SermonDetail() {
           <Reveal delay={80}>
           <div className="mt-6">
             <div className="text-xs uppercase tracking-widest text-neutral-500">{sermon?.date} • {sermon?.pastor} {typeof sermon?.views === 'number' ? `• ${sermon?.views} lượt đọc` : ''}</div>
-            <h1 className="font-display text-3xl mt-2">{sermon?.title}</h1>
+            <h1 className="font-display text-2xl md:text-3xl mt-2 uppercase tracking-wider leading-relaxed [text-align:justify]">{sermon?.title}</h1>
             {/* TTS controls dưới tiêu đề */}
             <div className="mt-4 flex items-center gap-2 flex-wrap min-h-[44px]">
               {!isSpeaking ? (

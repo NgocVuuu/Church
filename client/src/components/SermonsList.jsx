@@ -40,8 +40,10 @@ export default function SermonsList({ items }) {
                 </div>
                 <div className="p-4 flex-1 flex flex-col min-h-0 gap-2">
                   <h4 className="font-display text-lg clamp-2">{s.title}</h4>
-                  <div className="text-sm text-neutral-600">{s.date} · bởi <span className="font-medium">{s.pastor}</span></div>
-                    <div className="text-sm text-neutral-600">{s.date} · bởi <span className="font-medium">{s.pastor}</span> · {typeof s.views === 'number' ? `${s.views} lượt đọc` : null}</div>
+                  <div className="text-sm text-neutral-600">
+                    {s.date} · bởi <span className="font-medium">{s.pastor}</span>
+                    {typeof s.views === 'number' ? ` · ${s.views} lượt đọc` : null}
+                  </div>
                   <Link to={`/bai-giang/${s.slug || s.id}`} className="inline-flex items-center text-primary font-medium hover:underline mt-auto">Nghe bài giảng →</Link>
                 </div>
               </article>
@@ -58,8 +60,10 @@ export default function SermonsList({ items }) {
               </div>
               <div className="p-4 flex-1 flex flex-col min-h-0 gap-2">
                 <h4 className="font-display text-xl clamp-2">{s.title}</h4>
-                <div className="text-sm text-neutral-600">{s.date} · bởi <span className="font-medium">{s.pastor}</span></div>
-                  <div className="text-sm text-neutral-600">{s.date} · bởi <span className="font-medium">{s.pastor}</span> · {typeof s.views === 'number' ? `${s.views} lượt đọc` : null}</div>
+                <div className="text-sm text-neutral-600">
+                  {s.date} · bởi <span className="font-medium">{s.pastor}</span>
+                  {typeof s.views === 'number' ? ` · ${s.views} lượt đọc` : null}
+                </div>
                 <Link to={`/bai-giang/${s.slug || s.id}`} className="inline-flex items-center text-primary font-medium hover:underline mt-auto">Nghe bài giảng →</Link>
               </div>
             </article>

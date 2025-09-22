@@ -35,11 +35,11 @@ export default function Contact() {
   <div className="bg-neutral-50">
           <Reveal>
             <form className="space-y-4">
-              <input type="text" placeholder="Your Name" className="w-full rounded-lg border px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
-              <input type="email" placeholder="Your Email" className="w-full rounded-lg border px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
-              <input type="text" placeholder="Subject" className="w-full rounded-lg border px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
-              <textarea placeholder="Message" rows="7" className="w-full rounded-lg border px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
-              <button type="submit" className="mt-4 inline-flex items-center justify-center rounded-full bg-primary text-white px-8 py-4 shadow-[0_20px_40px_-10px_rgba(249,211,66,0.6)]">Send Message</button>
+              <input type="text" placeholder="Họ và tên" className="w-full rounded-lg border px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
+              <input type="email" placeholder="Email của bạn" className="w-full rounded-lg border px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
+              <input type="text" placeholder="Tiêu đề" className="w-full rounded-lg border px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
+              <textarea placeholder="Nội dung" rows="7" className="w-full rounded-lg border px-4 py-3 outline-none focus:ring-2 focus:ring-primary" />
+              <button type="submit" className="mt-4 inline-flex items-center justify-center rounded-full bg-primary text-white px-8 py-4 shadow-[0_20px_40px_-10px_rgba(249,211,66,0.6)]">Gửi tin nhắn</button>
             </form>
           </Reveal>
           <Reveal delay={120}>

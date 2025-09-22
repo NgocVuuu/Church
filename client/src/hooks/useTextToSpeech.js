@@ -171,6 +171,55 @@ export function useTextToSpeech() {
       out = out.replace(/\b([0-3]?\d)\/(0?\d|1[0-2])\/(\d{4})\b/g, (m, d, mo, y) => `ngày ${parseInt(d,10)} tháng ${parseInt(mo,10)} năm ${y}`)
       // Times HH:MM -> ".. giờ .. phút"
       out = out.replace(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g, (m, h, mi) => `${parseInt(h,10)} giờ ${parseInt(mi,10)} phút`)
+      // Foreign names / proper nouns → Vietnamese-phonetic forms (best-effort)
+      const pairsMulti = [
+        { from: /\bJesus\s+Christ\b/gi, to: 'Chúa Giê-su Ki-tô' },
+        { from: /\bPope\s+Francis\b/gi, to: 'Đức Thánh Cha Phan-xi-cô' },
+        { from: /\bPope\s+Benedict\s+XVI\b/gi, to: 'Đức Thánh Cha Bê-nê-đictô 16' },
+        { from: /\bJohn\s+Paul\s+II\b/gi, to: 'Gio-an Phao-lô 2' },
+        { from: /\bJohn\s+Paul\b/gi, to: 'Gio-an Phao-lô' },
+        { from: /\bSaint\s+Peter\b/gi, to: 'Thánh Phê-rô' },
+        { from: /\bSaint\s+Paul\b/gi, to: 'Thánh Phao-lô' },
+        { from: /\bHoly\s+Spirit\b/gi, to: 'Chúa Thánh Thần' },
+        { from: /\bHoly\s+Father\b/gi, to: 'Đức Thánh Cha' },
+      ]
+      pairsMulti.forEach(({ from, to }) => { out = out.replace(from, to) })
+      const pairsSingle = [
+        { from: /\bFrancis\b/gi, to: 'Phan-xi-cô' },
+        { from: /\bBenedict\b/gi, to: 'Bê-nê-đictô' },
+        { from: /\bPeter\b/gi, to: 'Phê-rô' },
+        { from: /\bPaul\b/gi, to: 'Phao-lô' },
+        { from: /\bMary\b/gi, to: 'Ma-ri-a' },
+        { from: /\bJoseph\b/gi, to: 'Giu-se' },
+        { from: /\bJohn\b/gi, to: 'Gio-an' },
+        { from: /\bJames\b/gi, to: 'Gia-cô-bê' },
+        { from: /\bMatthew\b/gi, to: 'Mát-thêu' },
+        { from: /\bMark\b/gi, to: 'Mác-cô' },
+        { from: /\bLuke\b/gi, to: 'Lu-ca' },
+        { from: /\bJudas\b/gi, to: 'Giu-đa' },
+        { from: /\bJerusalem\b/gi, to: 'Giê-ru-sa-lem' },
+        { from: /\bNazareth\b/gi, to: 'Na-da-rét' },
+        { from: /\bBethlehem\b/gi, to: 'Bê-lem' },
+        { from: /\bGalilee\b/gi, to: 'Ga-li-lê' },
+        { from: /\bVatican\b/gi, to: 'Va-ti-can' },
+        { from: /\bCatholic\b/gi, to: 'Công giáo' },
+      ]
+      pairsSingle.forEach(({ from, to }) => { out = out.replace(from, to) })
+      // Custom dictionary from localStorage (plain string replacement, case-insensitive)
+      try {
+        const raw = localStorage.getItem('tts_custom_dict')
+        if (raw) {
+          const dict = JSON.parse(raw)
+          const esc = (s='') => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          if (dict && typeof dict === 'object') {
+            Object.entries(dict).forEach(([k,v]) => {
+              if (!k || typeof v !== 'string') return
+              const re = new RegExp(esc(k), 'gi')
+              out = out.replace(re, v)
+            })
+          }
+        }
+      } catch {}
       // thế kỉ/thế kỷ + Roman numerals → Arabic
       out = out.replace(/(thế\s*k[ỉịy])\s+([MDCLXVI]+)/gi, (m, g1, roman) => {
         const n = romanToArabic(roman)

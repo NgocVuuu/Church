@@ -13,11 +13,15 @@ router.get('/', async (req, res) => {
 
 router.get('/:slug', async (req, res) => {
   try {
-    const updated = await Sermon.findOneAndUpdate(
-      { slug: req.params.slug },
-      { $inc: { views: 1 } },
-      { new: true }
-    ).lean()
+    const key = req.params.slug
+    let updated = null
+    // If looks like an ObjectId, try by _id first
+    if (/^[a-fA-F0-9]{24}$/.test(key)) {
+      updated = await Sermon.findByIdAndUpdate(key, { $inc: { views: 1 } }, { new: true }).lean()
+    }
+    if (!updated) {
+      updated = await Sermon.findOneAndUpdate({ slug: key }, { $inc: { views: 1 } }, { new: true }).lean()
+    }
     if (!updated) return res.status(404).json({ error: 'Not found' })
     res.json(updated)
   } catch (e) {

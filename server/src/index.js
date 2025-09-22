@@ -17,6 +17,7 @@ import priestsRouter from './routes/priests.js';
 import authRouter from './routes/auth.js';
 import galleryRouter from './routes/gallery.js';
 import bannersRouter from './routes/banners.js';
+import contactRouter from './routes/contact.js';
 
 dotenv.config();
 
@@ -199,7 +200,7 @@ app.use('/api/priests', priestsRouter);
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/gallery', galleryRouter);
 app.use('/api/banners', bannersRouter);
-// Contact route removed: contact content is hard-coded in client.
+app.use('/api/contact', contactRouter);
 
 const BASE_PORT = Number(process.env.PORT) || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/church';
