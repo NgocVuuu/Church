@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 
 function useCountdown(targetDate) {
-  const target = useMemo(() => new Date(targetDate).getTime(), [targetDate])
+  const target = useMemo(() => {
+    const t = new Date(targetDate)
+    const ms = t instanceof Date && !isNaN(t.getTime()) ? t.getTime() : null
+    return ms
+  }, [targetDate])
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
+  if (target === null) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 }
+  }
   const delta = Math.max(0, target - now)
   const days = Math.floor(delta / (1000 * 60 * 60 * 24))
   const hours = Math.floor((delta / (1000 * 60 * 60)) % 24)

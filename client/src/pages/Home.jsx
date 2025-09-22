@@ -48,7 +48,7 @@ export default function Home() {
       <Navbar />
       <section
         id="home"
-        className="relative min-h-[35vh] sm:min-h-[45vh] md:min-h-[70vh] flex items-center justify-center text-center select-none"
+        className="relative min-h-[35vh] sm:min-h-[45vh] md:min-h-[80vh] lg:min-h-[90vh] flex items-center justify-center text-center select-none"
         onMouseDown={(e) => onDown(e.clientX)}
         onMouseMove={(e) => onMove(e.clientX)}
         onMouseUp={onUp}

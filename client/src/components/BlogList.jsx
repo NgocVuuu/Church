@@ -25,7 +25,7 @@ export default function BlogList({ items }) {
         </div>
         {/* Mobile slider */}
         <div className="md:hidden -mx-6">
-          <div className="px-6 flex gap-4 overflow-x-auto pb-2 no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
+          <div className="pl-3 pr-6 flex gap-4 overflow-x-auto pb-2 no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
             {list.map((b) => (
               <article key={b.id} className="flex-none w-72 border rounded-lg overflow-hidden bg-white shadow-sm h-full flex flex-col" style={{ scrollSnapAlign: 'start' }}>
                 <div className="relative h-40">

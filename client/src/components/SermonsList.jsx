@@ -26,7 +26,7 @@ export default function SermonsList({ items }) {
         {/* Mobile slider */}
         <div className="md:hidden -mx-6">
           <div
-            className="px-6 flex gap-4 overflow-x-auto pb-2 no-scrollbar"
+            className="pl-3 pr-6 flex gap-4 overflow-x-auto pb-2 no-scrollbar"
             style={{ scrollSnapType: 'x mandatory' }}
           >
             {list.map((s) => (

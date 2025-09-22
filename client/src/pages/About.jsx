@@ -24,7 +24,7 @@ export default function About() {
             label:'Giáo họ/giáo khu', value:about.stats.zones, note:'Tổ chức sinh hoạt theo giáo khu'
           }].map((it, idx)=> (
             <Reveal key={it.label} delay={idx*80}>
-              <div className="rounded-lg bg-neutral-50 p-3 md:p-6 border">
+              <div className="rounded-lg bg-neutral-50 p-3 md:p-6 border h-full flex flex-col">
                 <div className="text-neutral-500 uppercase text-[10px] md:text-xs tracking-widest">{it.label}</div>
                 <div className="mt-1 md:mt-2 font-display text-xl md:text-3xl">{it.value}</div>
                 <p className="mt-1 text-neutral-600 text-xs md:text-sm">{it.note}</p>
@@ -41,10 +41,10 @@ export default function About() {
               <div>
                 <h2 className="font-display text-2xl">{about.intro.title}</h2>
                 {about.intro.paragraphs.map((p, i) => (
-                  <p key={i} className="mt-4 leading-7 text-neutral-700">{p}</p>
+                  <p key={i} className="mt-4 leading-7 text-neutral-700 text-justify">{p}</p>
                 ))}
                 {!!about.intro.bullets.length && (
-                  <ul className="mt-4 list-disc pl-5 text-neutral-700 space-y-1">
+                  <ul className="mt-4 list-disc pl-5 text-neutral-700 space-y-1 text-justify">
                     {about.intro.bullets.map((b, i) => <li key={i}>{b}</li>)}
                   </ul>
                 )}
@@ -54,7 +54,7 @@ export default function About() {
                   <div className="mt-6 grid grid-cols-3 gap-2 md:gap-4">
                     {about.highlights.slice(0,3).map((h, i) => (
                       <Reveal key={i} delay={i*70}>
-                        <div className="rounded-lg border p-3 md:p-4 bg-neutral-50">
+                        <div className="rounded-lg border p-3 md:p-4 bg-neutral-50 h-full flex flex-col">
                           <div className="text-[10px] md:text-xs uppercase tracking-widest text-neutral-500">{h.tag}</div>
                           <div className="font-display text-base md:text-xl mt-1">{h.title}</div>
                         </div>
