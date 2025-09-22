@@ -15,10 +15,12 @@ export default function SermonDetail() {
   const { sermons, getSermonBySlug, fetchSermonBySlug } = useSermons()
   const { posts } = usePosts()
   const sermon = getSermonBySlug(id) || sermons.find(s => s.id === id) || sermons[0]
-  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop } = useTextToSpeech()
+  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop, voices, preferredVoiceKey, voiceKey } = useTextToSpeech()
 
   // Dừng đọc khi unmount hoặc đổi bài giảng (id)
   const cleanupGuardRef = useRef(false)
+  const stopRef = useRef(forceStop)
+  useEffect(() => { stopRef.current = forceStop }, [forceStop])
   useEffect(() => {
     if (id) fetchSermonBySlug(id)
     return () => {
@@ -26,9 +28,9 @@ export default function SermonDetail() {
         cleanupGuardRef.current = true
         return
       }
-      forceStop()
+      try { stopRef.current?.() } catch {}
     }
-  }, [forceStop, id])
+  }, [id])
 
   // Chuẩn hóa text (chỉ đọc nội dung đến từ DB, không lấy từ DOM)
   function getReadableText(title = '', content = '') {
@@ -96,8 +98,9 @@ export default function SermonDetail() {
       // Đọc tiêu đề trước, rồi nội dung – tách đoạn để speakSmart tạo ranh giới chunk
       const joined = [cleanedTitle, cleanedContent].filter(Boolean).join('\n\n')
       if (joined) {
-        // dùng speakSmart để xử lý chunk và fallback tốt hơn
-        speakSmart(joined, { lang: 'vi-VN', pauseMs: 450 })
+        const preferred = (voices || []).find(v => voiceKey(v) === preferredVoiceKey)
+        // dùng speakSmart để xử lý chunk và fallback tốt hơn (buộc giọng tiếng Việt)
+        speakSmart(joined, { lang: 'vi-VN', pauseMs: 450, voice: preferred })
       }
     } catch (e) {
       // eslint-disable-next-line no-console

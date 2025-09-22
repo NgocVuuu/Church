@@ -103,8 +103,22 @@ export function usePosts() {
   }
   const getPost = (id) => posts.find(p => p.id === id)
   const getPostBySlug = (slug) => posts.find(p => p.slug === slug)
+  // View count semantics: The server increments on GET /posts/:slug.
+  // We call this once on PostDetail mount/slug change.
   const fetchPostBySlug = async (slug) => {
     try {
+      // Throttle: chỉ đếm 1 lần/slug trong 60 giây trên cùng 1 tab
+      try {
+        const key = `view_throttle_post_${slug}`
+        const now = Date.now()
+        const last = parseInt(sessionStorage.getItem(key) || '0', 10)
+        if (last && now - last < 60_000) {
+          // Không gọi server để tránh tăng views quá nhanh khi F5 liên tục
+          const existing = posts.find(p => p.slug === slug)
+          return existing || null
+        }
+        sessionStorage.setItem(key, String(now))
+      } catch {}
       const res = await fetch(apiUrl(`/posts/${slug}`))
       if (!res.ok) throw new Error('Not found')
       const data = await res.json()

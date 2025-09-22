@@ -3,15 +3,21 @@ import CloudinaryUpload from '../../components/CloudinaryUpload'
 import { useBanner } from '../../hooks/useBanner'
 import { useSermons } from '../../hooks/useSermons'
 import { useToast } from '../../components/Toast'
+import AutoResizeTextarea from '../../components/AutoResizeTextarea'
 
 export default function AdminSermons() {
+  const SERMON_AUTHORS = [
+    'Linh mục',
+    'Đức Giám Mục',
+    'Đức Thánh Cha',
+  ]
   const [imageUrl, setImageUrl] = useState('')
   const banner = useBanner('sermons')
   const { sermons, addSermon, updateSermon, removeSermon, slugify, ensureUniqueSlug, refetch } = useSermons()
   const toast = useToast()
-  const [form, setForm] = useState({ title: '', pastor: '', date: '', summary: '', content: '' })
+  const [form, setForm] = useState({ title: '', pastor: '', date: '', content: '' })
   const [editingId, setEditingId] = useState(null)
-  const summaryRef = useRef(null)
+  const contentRef = useRef(null)
   const onSubmit = async (e) => {
     e.preventDefault()
     try {
@@ -19,7 +25,7 @@ export default function AdminSermons() {
         toast.error('Vui lòng nhập tiêu đề')
         return
       }
-      // Tạo summary <= 500 ký tự từ nội dung textarea (đang dùng như content)
+      // Tạo summary <= 500 ký tự từ nội dung đầy đủ
       const makeSummary = (text = '', max = 500) => {
         const clean = (text || '')
           .replace(/<[^>]+>/g, ' ')
@@ -40,9 +46,10 @@ export default function AdminSermons() {
         pastor: form.pastor?.trim(),
         date: form.date?.trim(),
         image: imageUrl?.trim(),
-        content: (form.content && form.content.trim()) || (form.summary || ''),
+        // Gửi nội dung đầy đủ
+        content: (form.content && form.content.trim()) || '',
       }
-      base.summary = makeSummary(base.content || base.summary || '')
+      base.summary = makeSummary(base.content)
 
       if (editingId) {
         await updateSermon(editingId, base)
@@ -59,7 +66,7 @@ export default function AdminSermons() {
       try { await refetch() } catch {}
 
       // Reset form
-      setForm({ title: '', pastor: '', date: '', summary: '', content: '' })
+      setForm({ title: '', pastor: '', date: '', content: '' })
       setImageUrl('')
     } catch (err) {
       const msg = err?.message || 'Lỗi khi lưu bài giảng'
@@ -102,7 +109,7 @@ export default function AdminSermons() {
   }), [filtered])
 
   const beginEdit = (p) => {
-    setForm({ title: p.title || '', pastor: p.pastor || '', date: p.date || '', summary: p.summary || '', content: p.content || '' })
+    setForm({ title: p.title || '', pastor: p.pastor || '', date: p.date || '', content: p.content || '' })
     setImageUrl(p.image || '')
     setEditingId(p.id)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -110,17 +117,17 @@ export default function AdminSermons() {
   const onRemove = (id) => { if (confirm('Xóa bài giảng này?')) { removeSermon(id); toast.info('Đã xóa bài giảng') } }
   const applyBold = () => {
     const prevY = window.scrollY
-    const ta = summaryRef.current
+    const ta = contentRef.current
     if (!ta) return
     const start = ta.selectionStart ?? 0
     const end = ta.selectionEnd ?? 0
-    const val = form.summary || ''
+    const val = form.content || ''
     const sel = val.slice(start, end)
     const before = val.slice(0, start)
     const after = val.slice(end)
     const inner = sel || 'văn bản đậm'
     const next = `${before}**${inner}**${after}`
-    setForm(f => ({ ...f, summary: next }))
+    setForm(f => ({ ...f, content: next }))
     setTimeout(() => {
       ta.focus(); const s = start + 2; const e = s + inner.length; ta.setSelectionRange(s, e)
       try { window.scrollTo({ top: prevY, left: 0 }) } catch {}
@@ -139,7 +146,10 @@ export default function AdminSermons() {
       </div>
       <form onSubmit={onSubmit} className="space-y-4 max-w-5xl">
         <input value={form.title} onChange={(e)=>setForm(f=>({...f, title:e.target.value}))} placeholder="Tiêu đề" className="w-full border rounded px-4 py-3" />
-        <input value={form.pastor} onChange={(e)=>setForm(f=>({...f, pastor:e.target.value}))} placeholder="Linh mục giảng" className="w-full border rounded px-4 py-3" />
+        <input value={form.pastor} onChange={(e)=>setForm(f=>({...f, pastor:e.target.value}))} placeholder="Linh mục giảng (chọn hoặc nhập)" className="w-full border rounded px-4 py-3" list="sermon-author-options" />
+        <datalist id="sermon-author-options">
+          {SERMON_AUTHORS.map(a => <option key={a} value={a} />)}
+        </datalist>
         <input value={form.date} onChange={(e)=>setForm(f=>({...f, date:e.target.value}))} placeholder="Ngày" className="w-full border rounded px-4 py-3" />
         <div className="space-y-2">
           <CloudinaryUpload onUploaded={setImageUrl} folder="church/sermons" />
@@ -150,12 +160,18 @@ export default function AdminSermons() {
           <div className="flex items-center gap-2 mb-2">
             <button type="button" onClick={applyBold} className="px-2 py-1 border rounded text-sm font-medium" title="In đậm">B</button>
           </div>
-          <textarea ref={summaryRef} value={form.summary} onChange={(e)=>setForm(f=>({...f, summary:e.target.value}))} placeholder="Tóm tắt (hỗ trợ in đậm với **văn bản** )" rows={10} className="w-full border rounded px-4 py-3 font-sans" />
+          <AutoResizeTextarea
+            ref={contentRef}
+            value={form.content}
+            onChange={(e)=>setForm(f=>({...f, content:e.target.value}))}
+            placeholder="Nội dung bài giảng (thêm/sửa đầy đủ)"
+            rows={10}
+          />
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" className="bg-primary text-black rounded px-5 py-2.5">{editingId ? 'Cập nhật' : 'Lưu'}</button>
           {editingId && (
-            <button type="button" onClick={()=>{ setEditingId(null); setForm({ title:'', pastor:'', date:'', summary:'', content:'' }); setImageUrl('') }} className="border rounded px-4 py-2">Hủy sửa</button>
+            <button type="button" onClick={()=>{ setEditingId(null); setForm({ title:'', pastor:'', date:'', content:'' }); setImageUrl('') }} className="border rounded px-4 py-2">Hủy sửa</button>
           )}
         </div>
       </form>

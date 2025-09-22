@@ -16,6 +16,7 @@ import aboutRouter from './routes/about.js';
 import priestsRouter from './routes/priests.js';
 import authRouter from './routes/auth.js';
 import galleryRouter from './routes/gallery.js';
+import bannersRouter from './routes/banners.js';
 
 dotenv.config();
 
@@ -197,6 +198,7 @@ app.use('/api/about', aboutRouter);
 app.use('/api/priests', priestsRouter);
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/gallery', galleryRouter);
+app.use('/api/banners', bannersRouter);
 // Contact route removed: contact content is hard-coded in client.
 
 const BASE_PORT = Number(process.env.PORT) || 5000;

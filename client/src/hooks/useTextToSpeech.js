@@ -10,6 +10,9 @@ export function useTextToSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [voices, setVoices] = useState([])
+  const [preferredVoiceKey, setPreferredVoiceKeyState] = useState(() => {
+    try { return localStorage.getItem('tts_preferred_voice') || '' } catch { return '' }
+  })
   const cancelledRef = useRef(false)
   const currentUtterRef = useRef(null)
   const nextTimerRef = useRef(null)
@@ -60,8 +63,49 @@ export function useTextToSpeech() {
     }
   }, [])
 
+  // When voices load and no preference is stored, auto-pick a Vietnamese voice
+  useEffect(() => {
+    if (!voices.length) return
+    if (preferredVoiceKey) return
+    try {
+      const best = voices.find(v => (v.lang || '').toLowerCase().startsWith('vi')) || null
+      if (best) {
+        const key = voiceKey(best)
+        setPreferredVoiceKeyState(key)
+        try { localStorage.setItem('tts_preferred_voice', key) } catch {}
+        dlog('tts', 'auto-selected VI voice', { name: best.name, lang: best.lang })
+        devLog('auto-select', { name: best.name, lang: best.lang })
+      }
+    } catch {}
+  }, [voices])
+
+  // Build a stable key for a voice (prefer voiceURI)
+  const voiceKey = (v) => (v?.voiceURI) ? `uri:${v.voiceURI}` : (v ? `name:${v.name}|${v.lang}` : '')
+  const findByKey = (key) => {
+    if (!key) return null
+    if (key.startsWith('uri:')) {
+      const uri = key.slice(4)
+      return voices.find(v => v.voiceURI === uri) || null
+    }
+    if (key.startsWith('name:')) {
+      const rest = key.slice(5)
+      const [name, lang] = rest.split('|')
+      return voices.find(v => v.name === name && v.lang === lang) || voices.find(v => v.name === name) || null
+    }
+    return null
+  }
+
+  const setPreferredVoiceKey = (key) => {
+    setPreferredVoiceKeyState(key || '')
+    try { if (key) localStorage.setItem('tts_preferred_voice', key); else localStorage.removeItem('tts_preferred_voice') } catch {}
+  }
+  const clearPreferredVoice = () => setPreferredVoiceKey('')
+
   const pickVoice = (lang = 'vi-VN') => {
     if (!voices.length) return null
+    // 1) Honor user preference if that voice is still available
+    const preferred = findByKey(preferredVoiceKey)
+    if (preferred) return preferred
     const preferByName = (names = []) => names
       .map(n => voices.find(v => v.name?.toLowerCase().includes(n.toLowerCase())))
       .find(Boolean)
@@ -69,9 +113,10 @@ export function useTextToSpeech() {
     // Prefer high-quality voices by name per language
     if (lang.toLowerCase().startsWith('vi')) {
       const preferred = preferByName([
-        'Google tiếng việt', 'Google Vietnamese',
-        'Microsoft HoaiMy', 'Microsoft HoiHan',
-        'Vietnamese (Vietnam)'
+        // Common Vietnamese voices across platforms/browsers
+        'google tieng viet', 'google tiếng việt', 'google vietnamese',
+        'microsoft hoaimy', 'microsoft hoimy', 'microsoft hoihan', 'microsoft hanh',
+        'vietnamese (vietnam)', 'vi-vn', 'vietnamese'
       ])
       if (preferred) return preferred
     }
@@ -83,7 +128,7 @@ export function useTextToSpeech() {
       if (preferred) return preferred
     }
     // exact match
-    let v = voices.find(v => v.lang === lang)
+    let v = voices.find(v => (v.lang || '').toLowerCase() === lang.toLowerCase())
     if (v) return v
     // prefix match (e.g., vi-*)
     const pre = lang.split('-')[0]
@@ -96,7 +141,7 @@ export function useTextToSpeech() {
     return chosen
   }
 
-  const hasViChars = (s = '') => /[ăâêôơưđÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂÂĐÊÔƠƯàáâãèéêìíòóôõùúăâđêôơưỳýÀ-ỹ]/.test(s)
+  const hasViChars = (s = '') => /[ăâêôơưđỳýạảãàáầấẩẫậằắẳẵặẹẻẽèéềếểễệịỉĩìíòóôồốổỗộơờớởỡợùúũụủừứửữựÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂÂĐÊÔƠƯàáâãèéêìíòóôõùúăâđêôơưỳý]/.test(s)
   const startsWithNumberedList = (s = '') => /^\s*\d+[\.)]\s+/.test(s)
 
   // Convert Roman numerals (up to a reasonable range) to Arabic numbers
@@ -118,6 +163,14 @@ export function useTextToSpeech() {
       // Improve some Vietnamese church terms
       out = out.replace(/\bGiêsu\b/gi, 'Giê-su')
       out = out.replace(/\bGiê-su\b/gi, 'Giê-su')
+      // Common Catholic abbreviations
+      out = out.replace(/\bĐTC\b/g, 'Đức Thánh Cha')
+      out = out.replace(/\bĐGM\b/g, 'Đức Giám Mục')
+      out = out.replace(/\bLm\.?\b/g, 'Linh mục')
+      // Dates dd/mm/yyyy -> "ngày dd tháng mm năm yyyy"
+      out = out.replace(/\b([0-3]?\d)\/(0?\d|1[0-2])\/(\d{4})\b/g, (m, d, mo, y) => `ngày ${parseInt(d,10)} tháng ${parseInt(mo,10)} năm ${y}`)
+      // Times HH:MM -> ".. giờ .. phút"
+      out = out.replace(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g, (m, h, mi) => `${parseInt(h,10)} giờ ${parseInt(mi,10)} phút`)
       // thế kỉ/thế kỷ + Roman numerals → Arabic
       out = out.replace(/(thế\s*k[ỉịy])\s+([MDCLXVI]+)/gi, (m, g1, roman) => {
         const n = romanToArabic(roman)
@@ -198,7 +251,8 @@ export function useTextToSpeech() {
       const currentIndex = index
       const chunk = chunks[index++]
       // Force Vietnamese if numbered-list-like to avoid English reading of "one, two"
-      const lang = opts.lang || ((hasViChars(chunk) || startsWithNumberedList(chunk)) ? 'vi-VN' : 'en-US')
+      // Force Vietnamese by default; only switch to English if explicitly requested in opts.lang
+      const lang = (opts.lang || 'vi-VN')
       const processed = preprocessForLang(lang, chunk)
       const utter = new SpeechSynthesisUtterance(processed)
       const voice = opts.voice || pickVoice(lang)
@@ -207,11 +261,13 @@ export function useTextToSpeech() {
         // Align utterance language to the selected voice where possible
         utter.lang = voice.lang || lang
       } else {
-        // If no voices have loaded yet, don't force a lang that might be unsupported; let the engine pick default
-        if (voices.length > 0) utter.lang = lang
+        // If no voices have loaded yet, still request Vietnamese language to hint the engine
+        utter.lang = lang
       }
-      utter.rate = (opts.rate ?? 0.8)
-      utter.pitch = (opts.pitch ?? 0.95)
+      const isVi = (utter.lang || '').toLowerCase().startsWith('vi')
+      // Slightly faster/more natural defaults for Vietnamese
+      utter.rate = (opts.rate ?? (isVi ? 0.95 : 0.9))
+      utter.pitch = (opts.pitch ?? (isVi ? 1.0 : 0.95))
       utter.volume = 1
   dlog('tts', 'speakSmart chunk', { index: currentIndex, of: chunks.length, lang: utter.lang, len: chunk.length, voice: voice?.name, voicesCount: voices.length })
   devLog('chunk', { index: currentIndex, of: chunks.length, lang: utter.lang, len: chunk.length, voice: voice?.name, voicesCount: voices.length })
@@ -293,10 +349,9 @@ export function useTextToSpeech() {
       primeTriedRef.current = true
       dlog('tts', 'immediate prime (no voices yet)')
       devLog('immediate prime (no voices yet)')
-      const primeUtter = new SpeechSynthesisUtterance(
-        'Bắt đầu đọc'
-      )
-      // Don't force lang here; let engine choose default
+      const primeUtter = new SpeechSynthesisUtterance('Bắt đầu đọc')
+      // Hint VI for prime as well
+      primeUtter.lang = 'vi-VN'
       primeUtter.volume = 1
       primeUtter.rate = 1
       primeUtter.pitch = 1
@@ -333,8 +388,9 @@ export function useTextToSpeech() {
     } else {
       if (voices.length > 0) utter.lang = lang
     }
-    utter.rate = (opts.rate ?? 0.8)
-    utter.pitch = (opts.pitch ?? 0.95)
+    const isVi = (utter.lang || '').toLowerCase().startsWith('vi')
+    utter.rate = (opts.rate ?? (isVi ? 0.95 : 0.9))
+    utter.pitch = (opts.pitch ?? (isVi ? 1.0 : 0.95))
     utter.volume = 1
     let startedAt = null
     dlog('tts', 'speak single start', { len: (text||'').length, lang: utter.lang, voice: voice?.name, voicesCount: voices.length })
@@ -445,7 +501,7 @@ export function useTextToSpeech() {
   // Provide a stable alias for external cleanup
   const forceStop = () => stop()
 
-  const api = { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop, voices }
+  const api = { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop, voices, preferredVoiceKey, setPreferredVoiceKey, clearPreferredVoice, voiceKey }
   if (typeof window !== 'undefined' && debugOn('tts')) {
     // Expose for quick manual testing in console when debug is on
     window.tts = api

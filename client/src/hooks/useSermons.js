@@ -182,8 +182,21 @@ export function useSermons() {
 
   const getSermon = (id) => sermons.find(s => s.id === id)
   const getSermonBySlug = (s) => sermons.find(p => p.slug === s)
+  // View count semantics: The server increments on GET /sermons/:slug.
+  // We call this once on SermonDetail mount/slug change.
   const fetchSermonBySlug = async (slug) => {
     try {
+      // Throttle: chỉ đếm 1 lần/slug trong 60 giây trên cùng 1 tab
+      try {
+        const key = `view_throttle_sermon_${slug}`
+        const now = Date.now()
+        const last = parseInt(sessionStorage.getItem(key) || '0', 10)
+        if (last && now - last < 60_000) {
+          const existing = sermons.find(p => p.slug === slug)
+          return existing || null
+        }
+        sessionStorage.setItem(key, String(now))
+      } catch {}
       const res = await fetch(apiUrl(`/sermons/${slug}`))
       if (!res.ok) throw new Error('Not found')
       const data = await res.json()

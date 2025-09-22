@@ -1,11 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
 
+// Parse various date formats robustly, prefer local-time construction to avoid timezone surprises in production
+function parseDateFlexible(input) {
+  if (!input) return null
+  if (input instanceof Date && !isNaN(input.getTime())) return input.getTime()
+  const s = String(input).trim()
+  // Full ISO or with timezone: delegate to Date
+  if (/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}(:\d{2})?(?:Z|[+-]\d{2}:?\d{2})?$/i.test(s)) {
+    const t = new Date(s); const ms = t.getTime(); return isNaN(ms) ? null : ms
+  }
+  // YYYY-MM-DD (no time) → treat as local midnight
+  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+  if (m) { const [_, y, mo, d] = m; return new Date(+y, +mo - 1, +d, 0, 0, 0, 0).getTime() }
+  // YYYY-MM-DD HH:mm → local time
+  m = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/.exec(s)
+  if (m) { const [_, y, mo, d, hh, mm] = m; return new Date(+y, +mo - 1, +d, +hh, +mm, 0, 0).getTime() }
+  // dd/MM/YYYY (optional HH:mm) → local time
+  m = /^([0-3]?\d)\/([0-1]?\d)\/(\d{4})(?:\s+(\d{2}):(\d{2}))?$/.exec(s)
+  if (m) { const [_, d, mo, y, hh='00', mm='00'] = m; return new Date(+y, +mo - 1, +d, +hh, +mm, 0, 0).getTime() }
+  // Fallback
+  const t = new Date(s); const ms = t.getTime(); return isNaN(ms) ? null : ms
+}
+
 function useCountdown(targetDate) {
-  const target = useMemo(() => {
-    const t = new Date(targetDate)
-    const ms = t instanceof Date && !isNaN(t.getTime()) ? t.getTime() : null
-    return ms
-  }, [targetDate])
+  const target = useMemo(() => parseDateFlexible(targetDate), [targetDate])
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000)

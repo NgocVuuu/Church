@@ -15,23 +15,23 @@ export default function PostDetail() {
   const { posts, getPostBySlug, fetchPostBySlug } = usePosts()
   const { sermons } = useSermons()
   const post = getPostBySlug(slug) || posts[0]
-  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop } = useTextToSpeech()
+  const { isSpeaking, isPaused, speak, speakSmart, pause, resume, stop, forceStop, voices, preferredVoiceKey, voiceKey } = useTextToSpeech()
 
   // Dừng đọc khi unmount hoặc đổi bài (slug)
   const cleanupGuardRef = useRef(false)
+  // Keep latest stop function in a ref, but don't retrigger effect on each render
+  const stopRef = useRef(forceStop)
+  useEffect(() => { stopRef.current = forceStop }, [forceStop])
   useEffect(() => {
-    // Fetch to increment views and refresh post data
     if (slug) fetchPostBySlug(slug)
     return () => {
-      // In React StrictMode (dev), effects run cleanup immediately after mount.
-      // Skip the first cleanup once to prevent cancelling speech instantly.
       if (import.meta.env.DEV && !cleanupGuardRef.current) {
         cleanupGuardRef.current = true
         return
       }
-      forceStop()
+      try { stopRef.current?.() } catch {}
     }
-  }, [forceStop, slug])
+  }, [slug])
 
   // Chuẩn hóa text (chỉ đọc nội dung đến từ DB, không lấy từ DOM)
   function getReadableText(title = '', content = '') {
@@ -92,7 +92,12 @@ export default function PostDetail() {
     })
   dlog('post', 'Speak clicked', { slug, len: (cleanedText||'').length, hasContent: !!cleanedText, supports, engine, preview })
     try {
-      if (cleanedText) speak(cleanedText, { lang: 'vi-VN' })
+      if (cleanedText) {
+        // Prefer chunked reading with explicit Vietnamese voice
+        // Pass preferred voice if any
+        const preferred = (voices || []).find(v => voiceKey(v) === preferredVoiceKey)
+        speakSmart(cleanedText, { lang: 'vi-VN', pauseMs: 450, voice: preferred })
+      }
       else dlog('post', 'No cleanedText → button should be disabled')
     } catch (e) {
       dlog('post', 'speak() threw', e)

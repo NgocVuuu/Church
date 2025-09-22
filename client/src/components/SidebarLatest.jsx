@@ -1,6 +1,18 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 
 export default function SidebarLatest({ posts = [], sermons = [] }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isPostDetail = location.pathname.startsWith('/bai-viet/')
+  const isSermonDetail = location.pathname.startsWith('/bai-giang/')
+  const POST_AUTHORS = [
+    'Hội đồng mục vụ', 'Ban giáo lý', 'Ca đoàn', 'Giới người cha', 'Giới người mẹ', 'Vatican', 'Đức Thánh Cha', 'Đức Giám Mục'
+  ]
+  const SERMON_AUTHORS = ['Linh mục', 'Đức Giám Mục', 'Đức Thánh Cha']
+  const goFilter = (kind, author) => {
+    if (kind === 'post') navigate(`/bai-viet?author=${encodeURIComponent(author)}`)
+    if (kind === 'sermon') navigate(`/bai-giang?author=${encodeURIComponent(author)}`)
+  }
   return (
     <aside className="space-y-8">
       <div>
@@ -32,6 +44,17 @@ export default function SidebarLatest({ posts = [], sermons = [] }) {
                 <div className="text-xs text-neutral-500">{s.date} • {s.pastor}</div>
               </div>
             </Link>
+          ))}
+        </div>
+      </div>
+      {/* Authors quick filter */}
+      <div>
+        <div className="uppercase tracking-widest text-xs text-neutral-500 mb-3">Tác giả</div>
+        <div className="flex flex-wrap gap-2">
+          {(isPostDetail ? POST_AUTHORS : SERMON_AUTHORS).map(a => (
+            <button key={a} onClick={()=>goFilter(isPostDetail ? 'post' : 'sermon', a)} className="px-2 py-1 rounded-full border text-xs hover:bg-neutral-50">
+              {a}
+            </button>
           ))}
         </div>
       </div>

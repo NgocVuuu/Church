@@ -1,7 +1,7 @@
 import Navbar from '../components/Navbar'
 import PageBanner from '../components/PageBanner'
 import Footer from '../components/Footer'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useSermons } from '../hooks/useSermons'
 import Reveal from '../components/Reveal'
@@ -9,6 +9,10 @@ import Reveal from '../components/Reveal'
 export default function Sermons() {
   const { sermons } = useSermons()
   const [q, setQ] = useState('')
+  const [author, setAuthor] = useState('')
+  const [sp, setSp] = useSearchParams()
+  const aFromQs = sp.get('author') || ''
+  if (aFromQs && author !== aFromQs) setAuthor(aFromQs)
   const navigate = useNavigate()
   const normalize = (s='') => s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase()
   const parseVNDate = (str='') => {
@@ -23,12 +27,18 @@ export default function Sermons() {
     const ts = parseVNDate(s.date)
     return Number.isFinite(ts) ? ts : (s.createdAt || 0)
   }
+  const SERMON_AUTHORS = [
+    'Linh mục',
+    'Đức Giám Mục',
+    'Đức Thánh Cha',
+  ]
   const filtered = useMemo(() => {
     const n = normalize(q)
     const base = [...sermons].sort((a,b) => effectiveTs(b) - effectiveTs(a))
-    if (!n) return base
-    return base.filter(s => [s.title, s.summary, s.pastor, s.date].some(v => normalize(v).includes(n)))
-  }, [q, sermons])
+    const byText = !n ? base : base.filter(s => [s.title, s.summary, s.pastor, s.date].some(v => normalize(v).includes(n)))
+    const byAuthor = author ? byText.filter(s => (s.pastor||'') === author) : byText
+    return byAuthor
+  }, [q, author, sermons])
   return (
     <div className="bg-white min-h-screen">
       <Navbar />
@@ -36,8 +46,15 @@ export default function Sermons() {
   <div className="max-w-7xl mx-auto px-6 py-12 md:py-16">
 
         <Reveal>
-          <div className="mt-6 relative w-full md:w-1/2">
+          <div className="mt-6 relative w-full md:w-2/3 flex flex-col md:flex-row gap-3">
             <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Tìm kiếm bài giảng..." className="w-full border rounded px-3 py-2" />
+            <div className="flex items-center gap-2">
+              <select value={author} onChange={e=>{ setAuthor(e.target.value); if (e.target.value) setSp({ author: e.target.value }); else setSp({}) }} className="border rounded px-3 py-2 min-w-[220px]">
+                <option value="">Lọc theo tác giả</option>
+                {SERMON_AUTHORS.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              {author && <button className="text-sm text-neutral-600" onClick={()=>{ setAuthor(''); setSp({}) }}>Xóa lọc</button>}
+            </div>
             {q && filtered.slice(0,6).length > 0 && (
               <div className="absolute z-10 mt-2 w-full bg-white border rounded-lg shadow">
                 {filtered.slice(0,6).map(s => (

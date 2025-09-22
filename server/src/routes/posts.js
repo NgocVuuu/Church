@@ -63,4 +63,15 @@ router.delete('/:id', auth, adminOnly, validateObjectId, async (req, res) => {
   }
 })
 
+// Admin: reset all views to 0
+router.post('/reset-views', auth, adminOnly, async (req, res) => {
+  try {
+    const result = await Post.updateMany({}, { $set: { views: 0 } })
+    const modified = result?.modifiedCount ?? result?.nModified ?? 0
+    res.json({ ok: true, modified })
+  } catch (e) {
+    res.status(500).json({ error: 'reset_failed' })
+  }
+})
+
 export default router

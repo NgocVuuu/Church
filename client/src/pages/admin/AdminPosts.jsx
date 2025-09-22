@@ -3,8 +3,19 @@ import CloudinaryUpload from '../../components/CloudinaryUpload'
 import { useBanner } from '../../hooks/useBanner'
 import { usePosts } from '../../hooks/usePosts'
 import { useToast } from '../../components/Toast'
+import AutoResizeTextarea from '../../components/AutoResizeTextarea'
 
 export default function AdminPosts() {
+  const POST_AUTHORS = [
+    'Hội đồng mục vụ',
+    'Ban giáo lý',
+    'Ca đoàn',
+    'Giới người cha',
+    'Giới người mẹ',
+    'Vatican',
+    'Đức Thánh Cha',
+    'Đức Giám Mục',
+  ]
   const [imageUrl, setImageUrl] = useState('')
   const banner = useBanner('blog')
   const { posts, addPost, updatePost, removePost, slugify } = usePosts()
@@ -132,7 +143,10 @@ export default function AdminPosts() {
           const title = e.target.value
           setForm(f=>({ ...f, title, slug: f.slug ? f.slug : slugify(title) }))
         }} placeholder="Tiêu đề" className="w-full border rounded px-4 py-3" />
-        <input value={form.author} onChange={(e)=>setForm(f=>({...f, author:e.target.value}))} placeholder="Tác giả" className="w-full border rounded px-4 py-3" />
+        <input value={form.author} onChange={(e)=>setForm(f=>({...f, author:e.target.value}))} placeholder="Tác giả (chọn hoặc nhập)" className="w-full border rounded px-4 py-3" list="post-author-options" />
+        <datalist id="post-author-options">
+          {POST_AUTHORS.map(a => <option key={a} value={a} />)}
+        </datalist>
         <input value={form.date} onChange={(e)=>setForm(f=>({...f, date:e.target.value}))} placeholder="Ngày (vd: 17/09/2025 hoặc 2025-09-17)" className="w-full border rounded px-4 py-3" />
         <div className="space-y-2">
           <CloudinaryUpload onUploaded={setImageUrl} folder="church/posts" />
@@ -145,7 +159,13 @@ export default function AdminPosts() {
               B
             </button>
           </div>
-          <textarea ref={contentRef} value={form.content} onChange={(e)=>setForm(f=>({...f, content:e.target.value}))} placeholder="Nội dung (hỗ trợ in đậm với **văn bản** )" rows={12} className="w-full border rounded px-4 py-3 font-sans" />
+          <AutoResizeTextarea
+            ref={contentRef}
+            value={form.content}
+            onChange={(e)=>setForm(f=>({...f, content:e.target.value}))}
+            placeholder="Nội dung (hỗ trợ in đậm với **văn bản** )"
+            rows={8}
+          />
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" className="bg-primary text-black rounded px-5 py-2.5">
